@@ -1,0 +1,19 @@
+body {
+  background-color: linen;
+}
+
+#red {
+  background-color: red;
+  width: 100px;
+  padding: 20px;
+  position: absolute;
+  bottom: 0;
+}
+#green {
+  background-color: green;
+  width: 100px;
+  padding: 20px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
