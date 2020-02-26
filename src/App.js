@@ -1,95 +1,85 @@
-import React, { useEffect, useState, useRef } from 'react';
-import './App.css';
 
+    import React, { useEffect, useState, useRef } from 'react';
+    import './App.css';
+    import monkey from './monkey.png'
+    import banana from './banana.png'
 
-
-
-const socket = new WebSocket('ws://localhost:8080/ws');
-
-
-
-
-function App() {
-
-  const [count, setCount] = useState(0);
-  const [players, setPlayers] = useState([]);
-
-  function showKeyCode(e) {
-    //right
-    if (e.keyCode === 39) {
-      socket.send(JSON.stringify(10))
-    }
-
-
-    //left
-    if (e.keyCode === 37) {
-      socket.send(JSON.stringify(-10))
-    }
-
-
-  }
-  useEffect(() => {
-    document.body.addEventListener('keyup', showKeyCode);
-
-  }, [])
-
-
-
-
-
-
-
-  useEffect(() => {
-
-    socket.onmessage = (event) => {
-      // const parseData = JSON.parse(event.data)
-      // setCount(x=>x+parseData.X)
-      const data = {
-        "bananas": [],
-        "Players": [
-          {
-            id: 'Roei',
-            x: 8,
-            y: 9,
-            score: 9
-          },
-          {
-            id: 'Mey',
-            x: 8,
-            y: 9,
-            score: 9
-          }
+    
+    
+    const socket = new WebSocket('ws://localhost:8080/ws');
+    
+    
+    
+    
+    function App() {
+    
+      const [players, setPlayers] = useState(["roei","mey"]);
+      const [location, settLocation] = useState([
+         {
+          username: "Roei", message: "0"
+         }
         ]
+      );
+
+      // const isFirstRun = useRef(true);
+    
+      function showKeyCode(e) {
+        //right
+        if (e.keyCode === 39) {
+          socket.send(JSON.stringify({Username:"Roei",Message:"10"}))
+        }
+        //left
+        if (e.keyCode === 37) {
+          socket.send(JSON.stringify({Username:"Roei",Message:"-10"}))
+        }
+    
+    
       }
-      const aaa=[data.Players[0].id,data.Players[1].id]
-      setPlayers(aaa)
- }
-    socket.onopen = () => {
-      console.log("connected successfuly")
+      useEffect(() => {
+        document.body.addEventListener('keyup', showKeyCode);
+      }, [])
+    
+    
+    
+    
+    
+    
+    
+      useEffect(() => {
+    
+        socket.onmessage = (event) => {
+           const parseData = JSON.parse(event.data)
+           console.log("TCL: socket.onmessage -> parseData", parseData)
+        
+         
+          
+          settLocation([parseData])
+
+        }
+        socket.onopen = () => {
+          console.log("connected successfuly")
+        }
+    
+        socket.onclose = (e) => {
+          console.log("socket close connection", e)
+        }
+    
+    
+        socket.onerror = (e) => {
+          console.log("socket error", e)
+        }
+      }, []);
+    
+    
+      return (
+        <>
+         
+          <img className="monkey"  style={{ left: location[0].message + 'px' }} src={monkey}  />
+    
+        </>
+      );
     }
+    
+    export default App;
+    
 
-    socket.onclose = (e) => {
-      console.log("socket close connection", e)
-    }
-
-
-    socket.onerror = (e) => {
-      console.log("socket error", e)
-    }
-  }, []);
-
-
-  return (
-    <>
-      <div>
-        players:
-      {players.map(player => <span>{player} </span>)}
-      </div>
-      <div id="red" style={{ left: count + 'px' }}></div>
-      <div id="green"></div>
-    </>
-
-  );
-}
-
-export default App;
