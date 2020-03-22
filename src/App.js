@@ -16,7 +16,7 @@
       const [players, setPlayers] = useState(["roei","mey"]);
       const [location, settLocation] = useState([
          {
-          username: "Roei", message: "0"
+          y: "0", x: "0"
          }
         ]
       );
@@ -26,11 +26,11 @@
       function showKeyCode(e) {
         //right
         if (e.keyCode === 39) {
-          socket.send(JSON.stringify({Username:"Roei",Message:"10"}))
+          socket.send(JSON.stringify({y:"0",x:"10"}))
         }
         //left
         if (e.keyCode === 37) {
-          socket.send(JSON.stringify({Username:"Roei",Message:"-10"}))
+          socket.send(JSON.stringify({y:"0",x:"-10"}))
         }
     
     
@@ -40,9 +40,7 @@
       }, [])
     
     
-    
-    
-    
+
     
     
       useEffect(() => {
@@ -74,7 +72,7 @@
       return (
         <>
          
-          <img className="monkey"  style={{ left: location[0].message + 'px' }} src={monkey}  />
+          <img className="monkey"  style={{ left: location[0].x + 'px' }} src={monkey}  />
     
         </>
       );
