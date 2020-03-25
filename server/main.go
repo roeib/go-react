@@ -3,14 +3,14 @@ package main
 import (
 	_ "encoding/json"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 // Define our message object
@@ -25,6 +25,7 @@ type point struct{
 }
 
 type Player struct {
+	Id uuid.UUID `json"id"`
 	ExceptionType string `json:"exceptionType"` //add id : uuid
 	Color [3]int `json:"color"`
 	Size int `json:"size"`
@@ -34,6 +35,7 @@ type Player struct {
 }
 
 type Exception struct {
+	Id uuid.UUID `json"id"`
 	ExceptionType string `json:"exceptionType"`
 	Show bool `json:"show"`
 	P point `json:"p"`
@@ -62,7 +64,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	defer ws.Close() // Make sure we close the connection when the function returns
 
-	player := Player{ P:point{X:0, Y:0}, Size: 50, Show:true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color:[3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)} }
+	player := Player{ Id:uuid.New(),  P:point{X:0, Y:0}, Size: 50, Show:true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color:[3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)} }
 	clients[ws] = &player
 
 	fmt.Println("new player")
@@ -127,7 +129,7 @@ func exceptiosMapHandler (){
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{ExceptionType: exceptionsTypes[r.Intn(3)], P:point{X:int64(r.Intn(255)), Y:int64(r.Intn(255))}, Show:true }
+			var newEx = Exception{ Id:uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P:point{X:int64(r.Intn(255)), Y:int64(r.Intn(255))}, Show:true }
 			exceptionsMap.Lock() //take the write lock
 			exceptionsMap.m[newEx.P]=newEx;
 			exceptionsMap.Unlock() // release the write lock
