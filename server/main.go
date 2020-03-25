@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,28 +15,28 @@ import (
 
 // Define our message object
 type actionMessage struct {
-	x string
-	y string
+	X string // "0" || "10" ||  "-10"
+	Y string // "0" || "10" ||  "-10"
 }
 
 type point struct{
-	x        int64
-	y        int64
+	X   int64    `json:"x"`
+	Y int64     `json:"y"`
 }
 
 type Player struct {
-	exceptionType string
-	color [3]int
-	size int
-	p point
-	show bool
+	ExceptionType string `json:"exceptionType"` //add id : uuid
+	Color [3]int `json:"color"`
+	Size int `json:"size"`
+	P point `json:"p"`
+	Show bool `json:"show"`
 
 }
 
 type Exception struct {
-	exceptionType string
-	show bool
-	p point
+	ExceptionType string `json:"exceptionType"`
+	Show bool `json:"show"`
+	P point `json:"p"`
 }
 
 var exceptionsMap = struct{
@@ -61,11 +62,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	defer ws.Close() // Make sure we close the connection when the function returns
 
-	player := Player{ p:point{x:0, y:0}, size: 50, show:true, exceptionType: exceptionsTypes[rand.Intn(3)], color:[3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)} }
+	player := Player{ P:point{X:0, Y:0}, Size: 50, Show:true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color:[3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)} }
 	clients[ws] = &player
 
 	fmt.Println("new player")
-	fmt.Println(clients[ws])
+	fmt.Println( *clients[ws])
+	broadcastPlayers <- player
+
 	for {
 		var msg actionMessage
 		// Read in a new message as JSON and map it to a incomingMessage object
@@ -73,7 +76,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("error: %v", err)
 			var plyrMsg =  clients[ws]
-			plyrMsg.show= false;
+			plyrMsg.Show= false;
 			broadcastPlayers <- *plyrMsg
 			delete(clients, ws)
 			break
@@ -84,13 +87,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("player curr values")
 		fmt.Println(clients[ws])
 		//INSERT HERE  call to check collision function
-		newX, _ :=  strconv.ParseInt(msg.x, 10, 64)
-		clients[ws].p.x = int64(clients[ws].p.x) + newX
+		newX, _ :=  strconv.ParseInt(msg.X, 10, 64)
+		clients[ws].P.X = int64(clients[ws].P.X) + newX
 
 	//	newY, _ :=  strconv.ParseInt(msg.y, 10, 64)
 	//	clients[ws].p.y = int64(clients[ws].p.y) + newY
 		fmt.Println("player with new values ")
-		fmt.Println(clients[ws])
+		fmt.Println(*clients[ws])
 		broadcastPlayers <- *clients[ws]
 	}
 }
@@ -98,9 +101,6 @@ func broadcastMessages() {
 	for {
 		// Grab the next message from the broadcast channel
 		msg := <-broadcastPlayers
-
-		fmt.Println("!!!!!broadcast msg:")
-		fmt.Println(msg)
 
 		// Send it out to every client that is currently connected
 		for client := range clients {
@@ -111,6 +111,7 @@ func broadcastMessages() {
 				delete(clients, client)
 			}
 		}
+
 	}
 }
 
@@ -126,9 +127,9 @@ func exceptiosMapHandler (){
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{exceptionType: exceptionsTypes[r.Intn(3)], p:point{x:int64(r.Intn(255)), y:int64(r.Intn(255))}, show:true }
+			var newEx = Exception{ExceptionType: exceptionsTypes[r.Intn(3)], P:point{X:int64(r.Intn(255)), Y:int64(r.Intn(255))}, Show:true }
 			exceptionsMap.Lock() //take the write lock
-			exceptionsMap.m[newEx.p]=newEx;
+			exceptionsMap.m[newEx.P]=newEx;
 			exceptionsMap.Unlock() // release the write lock
 			fmt.Println(newEx)
 			broadcastException <- newEx
@@ -147,7 +148,7 @@ func exceptiosMapHandler (){
 				exceptionsMap.RUnlock()
 				break
 			}
-			value.show =false
+			value.Show =false
 			broadcastException <- value
 			//exceptionsMap.Lock() //take the write lock
 			//delete(exceptionsMap, value.p)

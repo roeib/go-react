@@ -47,11 +47,11 @@
     
         socket.onmessage = (event) => {
            const parseData = JSON.parse(event.data)
-           console.log("TCL: socket.onmessage -> parseData", parseData)
+           console.log("TCL: socket.onmessage -> parseData", parseData.p)
         
          
           
-          settLocation([parseData])
+          settLocation([parseData.p])
 
         }
         socket.onopen = () => {
