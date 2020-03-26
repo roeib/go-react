@@ -26,19 +26,17 @@ function App() {
   }, [])
 
   useEffect(() => {
-    console.log('gdfgdfg')
     socket.onmessage = (event) => {
-      console.log('players',players)
+      console.log('players', players)
       const parseData = JSON.parse(event.data)
-      let isPlayerExist = players.find(player => player.Id === parseData.Id )
-      if(isPlayerExist){
-          const cc = JSON.parse(JSON.stringify(players));
-          const objIndex = cc.findIndex((obj => obj.Id == isPlayerExist.Id));
-          cc[objIndex].p =parseData.p
-          setPlayers(cc)
+      let isPlayerExist = players.find(player => player.Id === parseData.Id)
+      if (isPlayerExist) {
+        const cc = JSON.parse(JSON.stringify(players));
+        const objIndex = cc.findIndex((obj => obj.Id == isPlayerExist.Id));
+        cc[objIndex].p = parseData.p
+        setPlayers(cc)
       } else {
-        console.log('new')
-        const newArr = [...players,parseData]
+        const newArr = [...players, parseData]
         setPlayers(newArr)
       }
     }
@@ -65,16 +63,17 @@ function App() {
 
   return (
     <>
-        {players.map(player=>{
-          return(
-<>player {player.p.x}
-<img className="monkey"  style={{ left: player.p.x + 'px' }} src={monkey}  />
+      {players.map(player => {
+        return (
+          <div style={{ position: 'absolute', right: 0, bottom: 0, left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
+          >
+            <span style={{position:"absolute",top:"-40px",left:"25px"}}>{player.exceptionType}</span>
+            <img src={monkey} />
+          </div>
+        )
+      })}
 
-</>
-          )
-        })}
 
-       
     </>
   );
 }
