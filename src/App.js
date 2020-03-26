@@ -31,10 +31,10 @@ function App() {
       const parseData = JSON.parse(event.data)
       let isPlayerExist = players.find(player => player.Id === parseData.Id)
       if (isPlayerExist) {
-        const cc = JSON.parse(JSON.stringify(players));
-        const objIndex = cc.findIndex((obj => obj.Id == isPlayerExist.Id));
-        cc[objIndex].p = parseData.p
-        setPlayers(cc)
+        const clonePlayers = JSON.parse(JSON.stringify(players));
+        const objIndex = clonePlayers.findIndex((obj => obj.Id == isPlayerExist.Id));
+        clonePlayers[objIndex].p = parseData.p
+        setPlayers(clonePlayers)
       } else {
         const newArr = [...players, parseData]
         setPlayers(newArr)
@@ -49,15 +49,14 @@ function App() {
     socket.onopen = () => {
       console.log("connected successfuly")
     }
-
-    socket.onclose = (e) => {
-      console.log("socket close connection", e)
-    }
-
-
     socket.onerror = (e) => {
       console.log("socket error", e)
     }
+    return () => {
+      socket.onclose = (e) => {
+        console.log("socket close connection", e)
+      }
+    };
   }, []);
 
 
@@ -67,7 +66,7 @@ function App() {
         return (
           <div style={{ position: 'absolute', right: 0, bottom: 0, left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
           >
-            <span style={{position:"absolute",top:"-40px",left:"25px"}}>{player.exceptionType}</span>
+            <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
           </div>
         )
