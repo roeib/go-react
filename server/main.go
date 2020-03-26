@@ -3,14 +3,15 @@ package main
 import (
 	_ "encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Define our message object
@@ -19,29 +20,28 @@ type actionMessage struct {
 	Y string // "0" || "10" ||  "-10"
 }
 
-type point struct{
-	X   int64    `json:"x"`
-	Y int64     `json:"y"`
+type point struct {
+	X int64 `json:"x"`
+	Y int64 `json:"y"`
 }
 
 type Player struct {
-	Id uuid.UUID `json"id"`
-	ExceptionType string `json:"exceptionType"` //add id : uuid
-	Color [3]int `json:"color"`
-	Size int `json:"size"`
-	P point `json:"p"`
-	Show bool `json:"show"`
-
+	Id            uuid.UUID `json"id"`
+	ExceptionType string    `json:"exceptionType"` //add id : uuid
+	Color         [3]int    `json:"color"`
+	Size          int       `json:"size"`
+	P             point     `json:"p"`
+	Show          bool      `json:"show"`
 }
 
 type Exception struct {
-	Id uuid.UUID `json"id"`
-	ExceptionType string `json:"exceptionType"`
-	Show bool `json:"show"`
-	P point `json:"p"`
+	Id            uuid.UUID `json"id"`
+	ExceptionType string    `json:"exceptionType"`
+	Show          bool      `json:"show"`
+	P             point     `json:"p"`
 }
 
-var exceptionsMap = struct{
+var exceptionsMap = struct {
 	sync.RWMutex
 	m map[point]Exception
 }{m: make(map[point]Exception)}
@@ -53,11 +53,9 @@ var broadcastPlayers = make(chan Player)
 var broadcastException = make(chan Exception)
 var upgrader = websocket.Upgrader{}
 
-
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{ Id:uuid.New(),  P:point{X:0, Y:0}, Size: 50, Show:true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color:[3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)} }
-
+	player := Player{Id: uuid.New(), P: point{X: 0, Y: 0}, Size: 50, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}}
 
 	broadcastPlayers <- player //broadcast new player
 
@@ -74,11 +72,10 @@ func handleNewPlayer(ws *websocket.Conn) {
 
 	//TODO send to new player all current exceptions
 
-
 	clients[ws] = &player
 
 	fmt.Println("new player")
-	fmt.Println( *clients[ws])
+	fmt.Println(*clients[ws])
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -94,15 +91,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	defer ws.Close() // Make sure we close the connection when the function returns
 
-
 	for {
 		var msg actionMessage
 		// Read in a new message as JSON and map it to a incomingMessage object
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("error: %v", err)
-			var plyrMsg =  clients[ws]
-			plyrMsg.Show= false;
+			var plyrMsg = clients[ws]
+			plyrMsg.Show = false
 			broadcastPlayers <- *plyrMsg
 			delete(clients, ws)
 			break
@@ -113,11 +109,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("player curr values")
 		fmt.Println(clients[ws])
 		//INSERT HERE  call to check collision function
-		newX, _ :=  strconv.ParseInt(msg.X, 10, 64)
+		newX, _ := strconv.ParseInt(msg.X, 10, 64)
 		clients[ws].P.X = int64(clients[ws].P.X) + newX
 
-	//	newY, _ :=  strconv.ParseInt(msg.y, 10, 64)
-	//	clients[ws].p.y = int64(clients[ws].p.y) + newY
+		//	newY, _ :=  strconv.ParseInt(msg.y, 10, 64)
+		//	clients[ws].p.y = int64(clients[ws].p.y) + newY
 		fmt.Println("player with new values ")
 		fmt.Println(*clients[ws])
 		broadcastPlayers <- *clients[ws]
@@ -141,21 +137,19 @@ func broadcastMessages() {
 	}
 }
 
-
-
-func exceptiosMapHandler (){
+func exceptiosMapHandler() {
 	//Thread.
 	// every 5 sec:  create new ex ->add to eXarr -> broadcast to users
 	//exery 10 sec:  choose rand ex ->remove from exArr ->broadcast to users
 
 	var r = rand.New(s)
-	addExTicker := time.NewTicker(5* time.Second)
+	addExTicker := time.NewTicker(5 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{ Id:uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P:point{X:int64(r.Intn(255)), Y:int64(r.Intn(255))}, Show:true }
+			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true}
 			exceptionsMap.Lock() //take the write lock
-			exceptionsMap.m[newEx.P]=newEx;
+			exceptionsMap.m[newEx.P] = newEx
 			exceptionsMap.Unlock() // release the write lock
 			fmt.Println(newEx)
 			broadcastException <- newEx
@@ -163,7 +157,7 @@ func exceptiosMapHandler (){
 		}
 	}()
 
-	removeExTicker := time.NewTicker(10* time.Second)
+	removeExTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		for t := range removeExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
@@ -174,7 +168,7 @@ func exceptiosMapHandler (){
 				exceptionsMap.RUnlock()
 				break
 			}
-			value.Show =false
+			value.Show = false
 			broadcastException <- value
 			//exceptionsMap.Lock() //take the write lock
 			//delete(exceptionsMap, value.p)
@@ -184,15 +178,11 @@ func exceptiosMapHandler (){
 		}
 	}()
 
-
 	// wait for 10 seconds
 	//time.Sleep(20 *time.Second)
-//	ticker.Stop()
-
+	//	ticker.Stop()
 
 }
-
-
 
 func main() {
 	fmt.Println("websockets project")
