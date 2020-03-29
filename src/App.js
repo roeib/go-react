@@ -18,39 +18,45 @@ function App() {
     if (e.keyCode === 37) {
       socket.send(JSON.stringify({ y: "0", x: "-10" }))
     }
-
+ //up
+ if (e.keyCode === 38) {
+  socket.send(JSON.stringify({ y: "10", x: "0" }))
+}
+ //down
+ if (e.keyCode === 40) {
+  socket.send(JSON.stringify({ y: "-10", x: "0" }))
+}
 
   }
   useEffect(() => {
     document.body.addEventListener('keyup', showKeyCode);
+    return () => {
+      document.body.remoceEventListener('keyup', showKeyCode);
+    };
   }, [])
 
   useEffect(() => {
     socket.onmessage = (event) => {
       console.log('players', players)
       const parseData = JSON.parse(event.data)
-      let isPlayerExist = players.find(player => player.Id === parseData.Id)
-      if (isPlayerExist) {
-        const clonePlayers = JSON.parse(JSON.stringify(players));
-        const objIndex = clonePlayers.findIndex((obj => obj.Id == isPlayerExist.Id));
+      const objIndex = players.findIndex((obj => obj.Id == parseData.Id));
+      let clonePlayers = []
+      if (objIndex !== -1) {
+        clonePlayers = JSON.parse(JSON.stringify(players));
         clonePlayers[objIndex].p = parseData.p
-        setPlayers(clonePlayers)
       } else {
-        const newArr = [...players, parseData]
-        setPlayers(newArr)
+        clonePlayers =[...players,parseData]
       }
+      setPlayers(clonePlayers)
+
     }
   }, [players]);
 
 
 
   useEffect(() => {
-
     socket.onopen = () => {
       console.log("connected successfuly")
-    }
-    socket.onerror = (e) => {
-      console.log("socket error", e)
     }
     return () => {
       socket.onclose = (e) => {
@@ -62,9 +68,10 @@ function App() {
 
   return (
     <>
+
       {players.map(player => {
         return (
-          <div style={{ position: 'absolute', right: 0, bottom: 0, left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
+          <div key ={player.Id } style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
           >
             <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
