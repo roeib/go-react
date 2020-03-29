@@ -7,13 +7,12 @@ const MONKEYWIDTH = 100;
 const MONKEYHEIGHT = 129;
 const STEP =10;
 const NOSTEP = 0
-function App() {
 
+function App() {
   const [players, setPlayers] = useState([]);
   const bodyBoundries = useRef(null);
 
   function showKeyCode(e) {
- 
     if (e.key === 'ArrowRight') {
       socket.send(JSON.stringify({ y: `${NOSTEP}`, x: `${STEP}` }))
     }
@@ -26,8 +25,6 @@ function App() {
     if (e.key === 'ArrowDown') {
       socket.send(JSON.stringify({ y: `-${STEP}`, x: `${NOSTEP}` }))
     }
-
-
   }
   useEffect(() => {
     document.body.addEventListener('keydown', showKeyCode);
@@ -38,7 +35,6 @@ function App() {
 
   useLayoutEffect(() => {
     const getBodyBoundries = document.body.getBoundingClientRect();
-
     bodyBoundries.current = {
       x: (getBodyBoundries.width -MONKEYWIDTH),
       y: (getBodyBoundries.height - MONKEYHEIGHT )
@@ -47,7 +43,6 @@ function App() {
 
   useEffect(() => {
     socket.onmessage = (event) => {
-      console.log('players', players)
       const parseData = JSON.parse(event.data)
       const objIndex = players.findIndex((obj => obj.Id == parseData.Id));
       let clonePlayers = []
@@ -78,18 +73,14 @@ function App() {
 
   return (
     <>
-
       {players.map(player => {
         return (
-          <div className="plaeyrImg" key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
-          >
+          <div  className="plaeyrImg" key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
             <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
           </div>
         )
       })}
-
-
     </>
   );
 }
