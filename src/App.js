@@ -5,35 +5,34 @@ import monkey from './monkey.png'
 const socket = new WebSocket('ws://localhost:8080/ws');
 const MONKEYWIDTH = 100;
 const MONKEYHEIGHT = 129;
-
+const STEP =10;
+const NOSTEP = 0
 function App() {
 
   const [players, setPlayers] = useState([]);
   const bodyBoundries = useRef(null);
 
   function showKeyCode(e) {
-    //right
-    if (e.keyCode === 39) {
-      socket.send(JSON.stringify({ y: "0", x: "10" }))
+ 
+    if (e.key === 'ArrowRight') {
+      socket.send(JSON.stringify({ y: `${NOSTEP}`, x: `${STEP}` }))
     }
-    //left
-    if (e.keyCode === 37) {
-      socket.send(JSON.stringify({ y: "0", x: "-10" }))
+    if (e.key === 'ArrowLeft') {
+      socket.send(JSON.stringify({ y: `${NOSTEP}`, x: `-${STEP}` }))
     }
-    //up
-    if (e.keyCode === 38) {
-      socket.send(JSON.stringify({ y: "10", x: "0" }))
+    if (e.key === 'ArrowUp') {
+      socket.send(JSON.stringify({ y: `${STEP}`, x: `${NOSTEP}` }))
     }
-    //down
-    if (e.keyCode === 40) {
-      socket.send(JSON.stringify({ y: "-10", x: "0" }))
+    if (e.key === 'ArrowDown') {
+      socket.send(JSON.stringify({ y: `-${STEP}`, x: `${NOSTEP}` }))
     }
+
 
   }
   useEffect(() => {
-    document.body.addEventListener('keyup', showKeyCode);
+    document.body.addEventListener('keydown', showKeyCode);
     return () => {
-      document.body.remoceEventListener('keyup', showKeyCode);
+      document.body.remoceEventListener('keydown', showKeyCode);
     };
   }, [])
 
