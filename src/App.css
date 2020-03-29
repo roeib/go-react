@@ -1,6 +1,11 @@
+html {
+  height: 100%;
+}
+
 body {
   background:url('./bg.jpg');
   background-size: cover;
+  min-height: 100%;
 }
 img{
   max-width: 100px;

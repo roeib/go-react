@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef,useLayoutEffect } from 'react';
 import './App.css';
 import monkey from './monkey.png'
 const socket = new WebSocket('ws://localhost:8080/ws');
@@ -8,6 +8,7 @@ const socket = new WebSocket('ws://localhost:8080/ws');
 function App() {
 
   const [players, setPlayers] = useState([]);
+  const bodyBoundries = useRef(null);
 
   function showKeyCode(e) {
     //right
@@ -18,14 +19,14 @@ function App() {
     if (e.keyCode === 37) {
       socket.send(JSON.stringify({ y: "0", x: "-10" }))
     }
- //up
- if (e.keyCode === 38) {
-  socket.send(JSON.stringify({ y: "10", x: "0" }))
-}
- //down
- if (e.keyCode === 40) {
-  socket.send(JSON.stringify({ y: "-10", x: "0" }))
-}
+    //up
+    if (e.keyCode === 38) {
+      socket.send(JSON.stringify({ y: "10", x: "0" }))
+    }
+    //down
+    if (e.keyCode === 40) {
+      socket.send(JSON.stringify({ y: "-10", x: "0" }))
+    }
 
   }
   useEffect(() => {
@@ -33,6 +34,14 @@ function App() {
     return () => {
       document.body.remoceEventListener('keyup', showKeyCode);
     };
+  }, [])
+
+  useLayoutEffect(() => {
+    const getBodyBoundries =document.body.getBoundingClientRect() 
+    bodyBoundries.current = {
+      x:getBodyBoundries.width,
+      y:getBodyBoundries.height
+    }
   }, [])
 
   useEffect(() => {
@@ -45,7 +54,7 @@ function App() {
         clonePlayers = JSON.parse(JSON.stringify(players));
         clonePlayers[objIndex].p = parseData.p
       } else {
-        clonePlayers =[...players,parseData]
+        clonePlayers = [...players, parseData]
       }
       setPlayers(clonePlayers)
 
@@ -56,7 +65,7 @@ function App() {
 
   useEffect(() => {
     socket.onopen = () => {
-      console.log("connected successfuly")
+      console.log("connected successfuly",bodyBoundries.current)
     }
     return () => {
       socket.onclose = (e) => {
@@ -71,7 +80,7 @@ function App() {
 
       {players.map(player => {
         return (
-          <div key ={player.Id } style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
+          <div key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
           >
             <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
