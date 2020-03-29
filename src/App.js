@@ -1,9 +1,10 @@
 
-import React, { useEffect, useState, useRef,useLayoutEffect } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import './App.css';
 import monkey from './monkey.png'
 const socket = new WebSocket('ws://localhost:8080/ws');
-
+const MONKEYWIDTH = 100;
+const MONKEYHEIGHT = 129;
 
 function App() {
 
@@ -37,10 +38,11 @@ function App() {
   }, [])
 
   useLayoutEffect(() => {
-    const getBodyBoundries =document.body.getBoundingClientRect() 
+    const getBodyBoundries = document.body.getBoundingClientRect();
+
     bodyBoundries.current = {
-      x:getBodyBoundries.width,
-      y:getBodyBoundries.height
+      x: (getBodyBoundries.width -MONKEYWIDTH),
+      y: (getBodyBoundries.height - MONKEYHEIGHT )
     }
   }, [])
 
@@ -65,7 +67,7 @@ function App() {
 
   useEffect(() => {
     socket.onopen = () => {
-      console.log("connected successfuly",bodyBoundries.current)
+      console.log("connected successfuly", bodyBoundries.current)
     }
     return () => {
       socket.onclose = (e) => {
@@ -80,7 +82,7 @@ function App() {
 
       {players.map(player => {
         return (
-          <div key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
+          <div className="plaeyrImg" key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}
           >
             <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
