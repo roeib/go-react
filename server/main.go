@@ -55,16 +55,21 @@ var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: point{X: 0, Y: 0}, Size: 50, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}}
+	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(256)), Y: int64(r2.Intn(256))}, Size: 50, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}}
 
-	broadcastPlayers <- player //broadcast new player
 
 	//send to new player all current players
 
+
+	fmt.Println("new player")
+	fmt.Println(player)
+
 	for key := range clients {
-		err := ws.WriteJSON(*clients[key])
+		tempP := *clients[key]
+		fmt.Println(tempP)
+		err := ws.WriteJSON(tempP)
 		if err != nil {
-			log.Printf("error: %v", err)
+			log.Printf( "73 error: %v", err)
 			ws.Close()
 			delete(clients, ws)
 		}
@@ -73,9 +78,8 @@ func handleNewPlayer(ws *websocket.Conn) {
 	//TODO send to new player all current exceptions
 
 	clients[ws] = &player
+	broadcastPlayers <- player //broadcast new player
 
-	fmt.Println("new player")
-	fmt.Println(*clients[ws])
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +100,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		// Read in a new message as JSON and map it to a incomingMessage object
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("error: %v", err)
+			log.Printf(" 102 error: %v", err)
 			var plyrMsg = clients[ws]
 			plyrMsg.Show = false
 			broadcastPlayers <- *plyrMsg
@@ -128,7 +132,7 @@ func broadcastMessages() {
 		for client := range clients {
 			err := client.WriteJSON(msg)
 			if err != nil {
-				log.Printf("error: %v", err)
+				log.Printf("134 error: %v", err)
 				client.Close()
 				delete(clients, client)
 			}
