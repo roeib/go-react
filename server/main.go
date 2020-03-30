@@ -112,8 +112,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		newX, _ := strconv.ParseInt(msg.X, 10, 64)
 		clients[ws].P.X = int64(clients[ws].P.X) + newX
 
-		//	newY, _ :=  strconv.ParseInt(msg.y, 10, 64)
-		//	clients[ws].p.y = int64(clients[ws].p.y) + newY
+			newY, _ :=  strconv.ParseInt(msg.Y, 10, 64)
+			clients[ws].P.Y = int64(clients[ws].P.Y) + newY
 		fmt.Println("player with new values ")
 		fmt.Println(*clients[ws])
 		broadcastPlayers <- *clients[ws]
