@@ -20,6 +20,11 @@ type actionMessage struct {
 	Y string // "0" || "10" ||  "-10"
 }
 
+type screenWH struct {
+	Width int // "0" || "10" ||  "-10"
+	Height int // "0" || "10" ||  "-10"
+}
+
 type point struct {
 	X int64 `json:"x"`
 	Y int64 `json:"y"`
@@ -55,7 +60,7 @@ var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(256)), Y: int64(r2.Intn(256))}, Size: 50, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}}
+	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Size: 50, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}}
 
 
 	//send to new player all current players
@@ -64,6 +69,8 @@ func handleNewPlayer(ws *websocket.Conn) {
 	fmt.Println("new player")
 	fmt.Println(player)
 
+	ws.WriteJSON(player)
+	
 	for key := range clients {
 		tempP := *clients[key]
 		fmt.Println(tempP)
@@ -79,6 +86,22 @@ func handleNewPlayer(ws *websocket.Conn) {
 
 	clients[ws] = &player
 	broadcastPlayers <- player //broadcast new player
+
+
+
+	var msg screenWH
+	// Read in a new message as JSON and map it to a screenWH object
+	err := ws.ReadJSON(&msg)
+	if err != nil {
+		log.Printf(" 102 error: %v", err)
+		var plyrMsg = clients[ws]
+		plyrMsg.Show = false
+		broadcastPlayers <- *plyrMsg
+		delete(clients, ws)
+	}
+	fmt.Println("received msg:")
+	fmt.Println(msg)
+
 
 }
 
