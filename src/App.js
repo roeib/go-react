@@ -49,11 +49,9 @@ function App() {
       if (objIndex !== -1) {
         clonePlayers = JSON.parse(JSON.stringify(players));
         clonePlayers[objIndex].p = parseData.p
-        console.log('oldd')
 
       } else {
         clonePlayers = [...players, parseData]
-        console.log('new')
       }
       setPlayers(clonePlayers)
 
@@ -76,13 +74,16 @@ function App() {
 
   return (
     <>
-    {players.length}
       {players.map(player => {
         return (
-          <div  className="plaeyrImg" key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
+          <>
+          {player.show &&
+            <div  className="plaeyrImg" key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
             <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
           </div>
+           }
+           </>
         )
       })}
     </>
