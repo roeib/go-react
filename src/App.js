@@ -43,26 +43,29 @@ function App() {
 
   useEffect(() => {
     socket.onmessage = (event) => {
+      console.log('in')
       const parseData = JSON.parse(event.data)
       const objIndex = players.findIndex((obj => obj.Id == parseData.Id));
-      let clonePlayers = []
       if (objIndex !== -1) {
-        clonePlayers = JSON.parse(JSON.stringify(players));
-        clonePlayers[objIndex].p = parseData.p
+        const clonePlayers = JSON.parse(JSON.stringify(players));
+        clonePlayers[objIndex].p = parseData.p;
+        setPlayers(clonePlayers)
 
       } else {
-        clonePlayers = [...players, parseData]
+        setPlayers(players => [...players, parseData])
       }
-      setPlayers(clonePlayers)
+      socket.addEventListener('message', onmessage);
 
+      return () => socket.removeEventListener('message', onmessage);
     }
+
   }, [players]);
 
 
 
   useEffect(() => {
     socket.onopen = () => {
-      socket.send(JSON.stringify(bodyBoundries.current))
+      // socket.send(JSON.stringify(bodyBoundries.current))
     }
     return () => {
       socket.onclose = (e) => {
@@ -76,14 +79,14 @@ function App() {
     <>
       {players.map(player => {
         return (
-          <>
+          <div key={player.Id}>
           {player.show &&
-            <div  className="plaeyrImg" key={player.Id} style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
+            <div  className="plaeyrImg"  style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
             <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
             <img src={monkey} />
           </div>
            }
-           </>
+           </div>
         )
       })}
     </>
