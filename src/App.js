@@ -5,7 +5,7 @@ import monkey from './monkey.png'
 const socket = new WebSocket('ws://localhost:8080/ws');
 const MONKEYWIDTH = 100;
 const MONKEYHEIGHT = 129;
-const STEP =10;
+const STEP = 10;
 const NOSTEP = 0
 
 function App() {
@@ -29,43 +29,46 @@ function App() {
   useEffect(() => {
     document.body.addEventListener('keydown', showKeyCode);
     return () => {
-      document.body.remoceEventListener('keydown', showKeyCode);
+      document.body.removeEventListener('keydown', showKeyCode);
     };
   }, [])
 
   useLayoutEffect(() => {
     const getBodyBoundries = document.body.getBoundingClientRect();
     bodyBoundries.current = {
-      width: (getBodyBoundries.width -MONKEYWIDTH),
-      height: (getBodyBoundries.height - MONKEYHEIGHT )
+      width: (getBodyBoundries.width - MONKEYWIDTH),
+      height: (getBodyBoundries.height - MONKEYHEIGHT)
     }
   }, [])
 
   useEffect(() => {
-    socket.onmessage = (event) => {
-      console.log('in')
-      const parseData = JSON.parse(event.data)
-      const objIndex = players.findIndex((obj => obj.Id == parseData.Id));
-      if (objIndex !== -1) {
-        const clonePlayers = JSON.parse(JSON.stringify(players));
-        clonePlayers[objIndex].p = parseData.p;
-        setPlayers(clonePlayers)
+    const onMessage = event => {
+      const parseData = JSON.parse(event.data);
+      setPlayers(currPlayers => {
+        const objIndex = currPlayers.findIndex(obj => obj.Id === parseData.Id);
+        if (objIndex !== -1) {
+          const clonePlayers = JSON.parse(JSON.stringify(currPlayers));
+          if(parseData.show === false){
+            const filtered = clonePlayers.filter(player=> player.Id !== parseData.Id); 
+            return filtered;
+          } 
+          clonePlayers[objIndex].p = parseData.p;
+          return clonePlayers;
+        }
+        return [...currPlayers, parseData];
+      });
+    };
 
-      } else {
-        setPlayers(players => [...players, parseData])
-      }
-      socket.addEventListener('message', onmessage);
+    socket.addEventListener('message', onMessage);
 
-      return () => socket.removeEventListener('message', onmessage);
-    }
-
-  }, [players]);
+    return () => socket.removeEventListener('message', onMessage);
+  },[players]);
 
 
 
   useEffect(() => {
     socket.onopen = () => {
-      // socket.send(JSON.stringify(bodyBoundries.current))
+      socket.send(JSON.stringify(bodyBoundries.current))
     }
     return () => {
       socket.onclose = (e) => {
@@ -74,19 +77,16 @@ function App() {
     };
   }, []);
 
-
   return (
     <>
       {players.map(player => {
         return (
           <div key={player.Id}>
-          {player.show &&
-            <div  className="plaeyrImg"  style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
-            <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
-            <img src={monkey} />
+              <div className="plaeyrImg" style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
+                <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
+                <img src={monkey} />
+              </div>
           </div>
-           }
-           </div>
         )
       })}
     </>
