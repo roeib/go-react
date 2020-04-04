@@ -21,8 +21,8 @@ type actionMessage struct {
 }
 
 type screenWH struct {
-	Width int // "0" || "10" ||  "-10"
-	Height int // "0" || "10" ||  "-10"
+	Width int64 // "0" || "10" ||  "-10"
+	Height int64 // "0" || "10" ||  "-10"
 }
 
 type point struct {
@@ -32,11 +32,14 @@ type point struct {
 
 type Player struct {
 	Id            uuid.UUID `json"id"`
-	ExceptionType string    `json:"exceptionType"` //add id : uuid
+	ExceptionType string    `json:"exceptionType"`
 	Color         [3]int    `json:"color"`
-	Size          int       `json:"size"`
 	P             point     `json:"p"`
 	Show          bool      `json:"show"`
+	windowH 	 int64
+	windowW      int64
+	Collision   string      `json:"collision"`  // border || player || exception
+	Score       int   `json:"score"`
 }
 
 type Exception struct {
@@ -60,50 +63,70 @@ var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Size: 50, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}}
-
-
-	//send to new player all current players
-
+	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: "" }
 
 	fmt.Println("new player")
 	fmt.Println(player)
-
 	ws.WriteJSON(player)
-	
+
+	//send to new player all current players
 	for key := range clients {
-		tempP := *clients[key]
-		fmt.Println(tempP)
-		err := ws.WriteJSON(tempP)
+		err := ws.WriteJSON(*clients[key])
 		if err != nil {
-			log.Printf( "73 error: %v", err)
+			log.Printf( "76 error: %v", err)
 			ws.Close()
 			delete(clients, ws)
 		}
 	}
 
 	//TODO send to new player all current exceptions
-
 	clients[ws] = &player
 	broadcastPlayers <- player //broadcast new player
 
-
-
 	var msg screenWH
-	// Read in a new message as JSON and map it to a screenWH object
 	err := ws.ReadJSON(&msg)
 	if err != nil {
-		log.Printf(" 102 error: %v", err)
+		log.Printf(" 89 error: %v", err)
 		var plyrMsg = clients[ws]
 		plyrMsg.Show = false
 		broadcastPlayers <- *plyrMsg
 		delete(clients, ws)
 	}
-	fmt.Println("received msg:")
-	fmt.Println(msg)
-
+	clients[ws].windowH = msg.Height
+	clients[ws].windowW = msg.Width
 
 }
+
+func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64){
+
+	x := int64(clients[ws].P.X) + newX
+	y := int64(clients[ws].P.Y) + newY
+	player := *clients[ws]
+
+	if y < 0  || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH{
+		player.Collision = "border"
+	}else{
+
+		//check for collision with other players
+		for key := range clients {
+			client := *clients[key]
+			if client.P.X == x ||  client.P.Y == y{
+				player.Collision = "player"
+			}
+		}
+
+		//TODO add check collisions with exceptions
+		player.P.X = x
+		clients[ws].P.X = x
+		clients[ws].P.Y = y
+		player.P.Y = y
+		fmt.Println("player with new values ")
+		fmt.Println(*clients[ws])
+	}
+
+	broadcastPlayers <- player
+}
+
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 
@@ -123,27 +146,17 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		// Read in a new message as JSON and map it to a incomingMessage object
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf(" 102 error: %v", err)
+			log.Printf(" 149 error: %v", err)
 			var plyrMsg = clients[ws]
 			plyrMsg.Show = false
 			broadcastPlayers <- *plyrMsg
 			delete(clients, ws)
 			break
 		}
-		fmt.Println("received msg:")
-		fmt.Println(msg)
-
-		fmt.Println("player curr values")
-		fmt.Println(clients[ws])
 		//INSERT HERE  call to check collision function
 		newX, _ := strconv.ParseInt(msg.X, 10, 64)
-		clients[ws].P.X = int64(clients[ws].P.X) + newX
-
-			newY, _ :=  strconv.ParseInt(msg.Y, 10, 64)
-			clients[ws].P.Y = int64(clients[ws].P.Y) + newY
-		fmt.Println("player with new values ")
-		fmt.Println(*clients[ws])
-		broadcastPlayers <- *clients[ws]
+		newY, _ := strconv.ParseInt(msg.Y, 10, 64)
+		handlePlayerMovement(ws, newX , newY)
 	}
 }
 func broadcastMessages() {
@@ -155,7 +168,7 @@ func broadcastMessages() {
 		for client := range clients {
 			err := client.WriteJSON(msg)
 			if err != nil {
-				log.Printf("134 error: %v", err)
+				log.Printf("171 error: %v", err)
 				client.Close()
 				delete(clients, client)
 			}
