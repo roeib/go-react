@@ -3,15 +3,14 @@ package main
 import (
 	_ "encoding/json"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 )
 
 // Define our message object
@@ -46,9 +45,15 @@ type Exception struct {
 	Id            uuid.UUID `json"id"`
 	ExceptionType string    `json:"exceptionType"`
 	Show          bool      `json:"show"`
+	Color         [3]int    `json:"color"`
 	P             point     `json:"p"`
 }
 
+type ElementsMsg struct{
+	Self Player `json:"self"`
+	Plyer Player `json:"player"`
+	Excption Exception `json:"exception"`
+}
 var exceptionsMap = struct {
 	sync.RWMutex
 	m map[point]Exception
@@ -57,7 +62,7 @@ var exceptionsMap = struct {
 var s = rand.NewSource(time.Now().UnixNano())
 var exceptionsTypes = [3]string{"NullPointerException", "DivideByZeroException", "IOException"}
 var clients = make(map[*websocket.Conn]*Player) // connected clients
-var broadcastPlayers = make(chan Player)
+var broadcastMsg = make(chan ElementsMsg)
 var broadcastException = make(chan Exception)
 var upgrader = websocket.Upgrader{}
 
@@ -67,29 +72,35 @@ func handleNewPlayer(ws *websocket.Conn) {
 
 	fmt.Println("new player")
 	fmt.Println(player)
-	ws.WriteJSON(player)
+
+	m :=ElementsMsg{Self:player,Plyer:player}
+	ws.WriteJSON(m)
 
 	//send to new player all current players
 	for key := range clients {
-		err := ws.WriteJSON(*clients[key])
+		m := ElementsMsg{Plyer:*clients[key]}
+		err := ws.WriteJSON(m)
 		if err != nil {
-			log.Printf( "76 error: %v", err)
+			log.Printf( "84 error: %v", err)
 			ws.Close()
 			delete(clients, ws)
 		}
 	}
 
 	//TODO send to new player all current exceptions
-	clients[ws] = &player
-	broadcastPlayers <- player //broadcast new player
 
+	ms :=ElementsMsg{Plyer:player}
+	broadcastMsg <- ms //broadcast new player
+
+	clients[ws] = &player
 	var msg screenWH
 	err := ws.ReadJSON(&msg)
 	if err != nil {
 		log.Printf(" 89 error: %v", err)
 		var plyrMsg = clients[ws]
 		plyrMsg.Show = false
-		broadcastPlayers <- *plyrMsg
+		ms :=ElementsMsg{Plyer:*plyrMsg}
+		broadcastMsg <- ms
 		delete(clients, ws)
 	}
 	clients[ws].windowH = msg.Height
@@ -108,12 +119,12 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64){
 	}else{
 
 		//check for collision with other players
-		for key := range clients {
-			client := *clients[key]
-			if client.P.X == x ||  client.P.Y == y{
-				player.Collision = "player"
-			}
-		}
+		//for key := range clients {
+		//	client := *clients[key]
+		//	if client.P.X == x ||  client.P.Y == y{
+		//		player.Collision = "player"
+		//	}
+		//}
 
 		//TODO add check collisions with exceptions
 		player.P.X = x
@@ -124,9 +135,58 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64){
 		fmt.Println(*clients[ws])
 	}
 
-	broadcastPlayers <- player
+	ms :=ElementsMsg{Plyer:player}
+	broadcastMsg <- ms
 }
 
+func exceptiosMapHandler() {
+	//Thread.
+	// every 5 sec:  create new ex ->add to eXarr -> broadcast to users
+	//every 10 sec:  choose rand ex ->remove from exArr ->broadcast to users
+
+	var r = rand.New(s)
+	addExTicker := time.NewTicker(5 * time.Second)
+	go func() {
+		for t := range addExTicker.C {
+			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
+			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true, Color:[3]int{0, 0, 0} }
+			exceptionsMap.Lock() //take the write lock
+			exceptionsMap.m[newEx.P] = newEx
+			exceptionsMap.Unlock() // release the write lock
+
+			fmt.Println(newEx)
+			ms :=ElementsMsg{Excption:newEx}
+			broadcastMsg <- ms
+
+		}
+	}()
+
+	removeExTicker := time.NewTicker(10 * time.Second)
+	go func() {
+		for t := range removeExTicker.C {
+			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
+			var value Exception
+			exceptionsMap.RLock()
+			for key := range exceptionsMap.m {
+				value = exceptionsMap.m[key]
+				exceptionsMap.RUnlock()
+				break
+			}
+			value.Show = false
+			ms :=ElementsMsg{Excption:value}
+			broadcastMsg <- ms
+			//exceptionsMap.Lock() //take the write lock
+			//delete(exceptionsMap, value.p)
+			//exceptionsMap.Unlock() //take the write lock
+			fmt.Println(value)
+
+		}
+	}()
+
+	// wait for 10 seconds
+	//time.Sleep(20 *time.Second)
+	//	ticker.Stop()
+}
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 
@@ -143,13 +203,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		var msg actionMessage
-		// Read in a new message as JSON and map it to a incomingMessage object
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf(" 149 error: %v", err)
-			var plyrMsg = clients[ws]
+			log.Printf("206 error: %v", err)
+			plyrMsg := clients[ws]
 			plyrMsg.Show = false
-			broadcastPlayers <- *plyrMsg
+			ms :=ElementsMsg{Plyer:*plyrMsg}
+			broadcastMsg <- ms
 			delete(clients, ws)
 			break
 		}
@@ -161,77 +221,25 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 }
 func broadcastMessages() {
 	for {
-		// Grab the next message from the broadcast channel
-		msg := <-broadcastPlayers
-
-		// Send it out to every client that is currently connected
+		msg := <-broadcastMsg
 		for client := range clients {
 			err := client.WriteJSON(msg)
 			if err != nil {
-				log.Printf("171 error: %v", err)
+				log.Printf("226 error: %v", err)
 				client.Close()
 				delete(clients, client)
 			}
 		}
-
 	}
 }
 
-func exceptiosMapHandler() {
-	//Thread.
-	// every 5 sec:  create new ex ->add to eXarr -> broadcast to users
-	//exery 10 sec:  choose rand ex ->remove from exArr ->broadcast to users
-
-	var r = rand.New(s)
-	addExTicker := time.NewTicker(5 * time.Second)
-	go func() {
-		for t := range addExTicker.C {
-			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true}
-			exceptionsMap.Lock() //take the write lock
-			exceptionsMap.m[newEx.P] = newEx
-			exceptionsMap.Unlock() // release the write lock
-			fmt.Println(newEx)
-			broadcastException <- newEx
-			//todo add broadcast to user here
-		}
-	}()
-
-	removeExTicker := time.NewTicker(10 * time.Second)
-	go func() {
-		for t := range removeExTicker.C {
-			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var value Exception
-			exceptionsMap.RLock()
-			for key := range exceptionsMap.m {
-				value = exceptionsMap.m[key]
-				exceptionsMap.RUnlock()
-				break
-			}
-			value.Show = false
-			broadcastException <- value
-			//exceptionsMap.Lock() //take the write lock
-			//delete(exceptionsMap, value.p)
-			//exceptionsMap.Unlock() //take the write lock
-			fmt.Println(value)
-
-		}
-	}()
-
-	// wait for 10 seconds
-	//time.Sleep(20 *time.Second)
-	//	ticker.Stop()
-
-}
-
 func main() {
-	fmt.Println("websockets project")
-	// Configure websocket route
+	fmt.Println("ExceptionalMonkeys ... ")
 
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
-	//go exceptiosMapHandler()
-	// Start the server on localhost port 8080 and log any errors
+	go exceptiosMapHandler()
+
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

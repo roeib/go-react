@@ -43,7 +43,8 @@ function App() {
 
   useEffect(() => {
     const onMessage = event => {
-      const parseData = JSON.parse(event.data);
+      const p = JSON.parse(event.data);
+      const parseData = p.player
       setPlayers(currPlayers => {
         const objIndex = currPlayers.findIndex(obj => obj.Id === parseData.Id);
         if (objIndex !== -1) {
