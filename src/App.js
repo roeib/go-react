@@ -48,9 +48,14 @@ function App() {
         const objIndex = currPlayers.findIndex(obj => obj.Id === parseData.Id);
         if (objIndex !== -1) {
           const clonePlayers = JSON.parse(JSON.stringify(currPlayers));
+          clonePlayers[objIndex].shake = false;
           if(parseData.show === false){
             const filtered = clonePlayers.filter(player=> player.Id !== parseData.Id); 
             return filtered;
+          } 
+          if(parseData.collision === "border"){
+            console.log("App -> border")
+            clonePlayers[objIndex].shake = true;
           } 
           clonePlayers[objIndex].p = parseData.p;
           return clonePlayers;
@@ -82,7 +87,7 @@ function App() {
       {players.map(player => {
         return (
           <div key={player.Id}>
-              <div className="plaeyrImg" style={{ position: 'absolute', right: 0, bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
+              <div className={`playerImg ${player.shake === true ? "shake" : ''}`} style={{ bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
                 <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
                 <img src={monkey} />
               </div>
