@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import './App.css';
 import monkey from './monkey.png'
+import activemonkey from './activemonkey.png'
+
 const socket = new WebSocket('ws://localhost:8080/ws');
 const MONKEYWIDTH = 100;
 const MONKEYHEIGHT = 129;
@@ -43,25 +45,32 @@ function App() {
 
   useEffect(() => {
     const onMessage = event => {
-      const p = JSON.parse(event.data);
-      const parseData = p.player
+      const parseData = JSON.parse(event.data);
+      const { player } = parseData
       setPlayers(currPlayers => {
-        const objIndex = currPlayers.findIndex(obj => obj.Id === parseData.Id);
+        const objIndex = currPlayers.findIndex(obj => obj.Id === player.Id);
         if (objIndex !== -1) {
           const clonePlayers = JSON.parse(JSON.stringify(currPlayers));
           clonePlayers[objIndex].shake = false;
-          if(parseData.show === false){
-            const filtered = clonePlayers.filter(player=> player.Id !== parseData.Id); 
+          if(!player.show){
+            const filtered = clonePlayers.filter(clonePlayer=> clonePlayer.Id !== player.Id); 
             return filtered;
           } 
-          if(parseData.collision === "border"){
-            console.log("App -> border")
+          if(player.collision === "border"){
             clonePlayers[objIndex].shake = true;
           } 
-          clonePlayers[objIndex].p = parseData.p;
+          clonePlayers[objIndex].p = player.p;
           return clonePlayers;
         }
-        return [...currPlayers, parseData];
+        //add active:true to THIS user
+        let newPlayer
+        if(parseData.self.Id === parseData.player.Id){
+          newPlayer ={...player,active:true}
+        }else{
+          newPlayer = {...player}
+
+        }
+        return [...currPlayers, newPlayer];
       });
     };
 
@@ -69,9 +78,6 @@ function App() {
 
     return () => socket.removeEventListener('message', onMessage);
   },[players]);
-
-
-
   useEffect(() => {
     socket.onopen = () => {
       socket.send(JSON.stringify(bodyBoundries.current))
@@ -90,7 +96,7 @@ function App() {
           <div key={player.Id}>
               <div className={`playerImg ${player.shake === true ? "shake" : ''}`} style={{ bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
                 <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
-                <img src={monkey} />
+                <img alt="player img" src={player.active? activemonkey : monkey } />
               </div>
           </div>
         )

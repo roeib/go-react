@@ -3,14 +3,15 @@ package main
 import (
 	_ "encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Define our message object
@@ -20,7 +21,7 @@ type actionMessage struct {
 }
 
 type screenWH struct {
-	Width int64 // "0" || "10" ||  "-10"
+	Width  int64 // "0" || "10" ||  "-10"
 	Height int64 // "0" || "10" ||  "-10"
 }
 
@@ -35,10 +36,10 @@ type Player struct {
 	Color         [3]int    `json:"color"`
 	P             point     `json:"p"`
 	Show          bool      `json:"show"`
-	windowH 	 int64
-	windowW      int64
-	Collision   string      `json:"collision"`  // border || player || exception
-	Score       int   `json:"score"`
+	windowH       int64
+	windowW       int64
+	Collision     string `json:"collision"` // border || player || exception
+	Score         int    `json:"score"`
 }
 
 type Exception struct {
@@ -49,11 +50,12 @@ type Exception struct {
 	P             point     `json:"p"`
 }
 
-type ElementsMsg struct{
-	Self Player `json:"self"`
-	Plyer Player `json:"player"`
+type ElementsMsg struct {
+	Self     Player    `json:"self"`
+	Plyer    Player    `json:"player"`
 	Excption Exception `json:"exception"`
 }
+
 var exceptionsMap = struct {
 	sync.RWMutex
 	m map[point]Exception
@@ -68,20 +70,20 @@ var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: "" }
+	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: ""}
 
 	fmt.Println("new player")
 	fmt.Println(player)
 
-	m :=ElementsMsg{Self:player,Plyer:player}
+	m := ElementsMsg{Self: player, Plyer: player}
 	ws.WriteJSON(m)
 
 	//send to new player all current players
 	for key := range clients {
-		m := ElementsMsg{Plyer:*clients[key]}
+		m := ElementsMsg{Plyer: *clients[key]}
 		err := ws.WriteJSON(m)
 		if err != nil {
-			log.Printf( "84 error: %v", err)
+			log.Printf("84 error: %v", err)
 			ws.Close()
 			delete(clients, ws)
 		}
@@ -89,7 +91,7 @@ func handleNewPlayer(ws *websocket.Conn) {
 
 	//TODO send to new player all current exceptions
 
-	ms :=ElementsMsg{Plyer:player}
+	ms := ElementsMsg{Plyer: player}
 	broadcastMsg <- ms //broadcast new player
 
 	clients[ws] = &player
@@ -99,7 +101,7 @@ func handleNewPlayer(ws *websocket.Conn) {
 		log.Printf(" 89 error: %v", err)
 		var plyrMsg = clients[ws]
 		plyrMsg.Show = false
-		ms :=ElementsMsg{Plyer:*plyrMsg}
+		ms := ElementsMsg{Plyer: *plyrMsg}
 		broadcastMsg <- ms
 		delete(clients, ws)
 	}
@@ -108,15 +110,15 @@ func handleNewPlayer(ws *websocket.Conn) {
 
 }
 
-func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64){
+func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 
 	x := int64(clients[ws].P.X) + newX
 	y := int64(clients[ws].P.Y) + newY
 	player := *clients[ws]
 
-	if y < 0  || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH{
+	if y < 0 || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH {
 		player.Collision = "border"
-	}else{
+	} else {
 
 		//check for collision with other players
 		//for key := range clients {
@@ -135,7 +137,7 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64){
 		fmt.Println(*clients[ws])
 	}
 
-	ms :=ElementsMsg{Plyer:player}
+	ms := ElementsMsg{Plyer: player}
 	broadcastMsg <- ms
 }
 
@@ -149,13 +151,13 @@ func exceptiosMapHandler() {
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true, Color:[3]int{0, 0, 0} }
+			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true, Color: [3]int{0, 0, 0}}
 			exceptionsMap.Lock() //take the write lock
 			exceptionsMap.m[newEx.P] = newEx
 			exceptionsMap.Unlock() // release the write lock
 
 			fmt.Println(newEx)
-			ms :=ElementsMsg{Excption:newEx}
+			ms := ElementsMsg{Excption: newEx}
 			broadcastMsg <- ms
 
 		}
@@ -173,7 +175,7 @@ func exceptiosMapHandler() {
 				break
 			}
 			value.Show = false
-			ms :=ElementsMsg{Excption:value}
+			ms := ElementsMsg{Excption: value}
 			broadcastMsg <- ms
 			//exceptionsMap.Lock() //take the write lock
 			//delete(exceptionsMap, value.p)
@@ -208,7 +210,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			log.Printf("206 error: %v", err)
 			plyrMsg := clients[ws]
 			plyrMsg.Show = false
-			ms :=ElementsMsg{Plyer:*plyrMsg}
+			ms := ElementsMsg{Plyer: *plyrMsg}
 			broadcastMsg <- ms
 			delete(clients, ws)
 			break
@@ -216,7 +218,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		//INSERT HERE  call to check collision function
 		newX, _ := strconv.ParseInt(msg.X, 10, 64)
 		newY, _ := strconv.ParseInt(msg.Y, 10, 64)
-		handlePlayerMovement(ws, newX , newY)
+		handlePlayerMovement(ws, newX, newY)
 	}
 }
 func broadcastMessages() {
@@ -238,7 +240,7 @@ func main() {
 
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
-	go exceptiosMapHandler()
+	// go exceptiosMapHandler()
 
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
