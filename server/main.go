@@ -38,7 +38,7 @@ type Player struct {
 	Show          bool      `json:"show"`
 	windowH       int64
 	windowW       int64
-	Collision     string `json:"collision"` // border || player || exception
+	Collision     bool `json:"collision"`
 	Score         int    `json:"score"`
 }
 
@@ -65,16 +65,16 @@ var s = rand.NewSource(time.Now().UnixNano())
 var exceptionsTypes = [3]string{"NullPointerException", "DivideByZeroException", "IOException"}
 var clients = make(map[*websocket.Conn]*Player) // connected clients
 var broadcastMsg = make(chan ElementsMsg)
-var broadcastException = make(chan Exception)
 var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: ""}
+	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: false}
 
 	fmt.Println("new player")
 	fmt.Println(player)
 
+	//send to client active player as self
 	m := ElementsMsg{Self: player, Plyer: player}
 	ws.WriteJSON(m)
 
@@ -89,19 +89,30 @@ func handleNewPlayer(ws *websocket.Conn) {
 		}
 	}
 
-	//TODO send to new player all current exceptions
+	//send to new player all current exceptions
+	for key := range exceptionsMap.m{
+		m := ElementsMsg{Excption:exceptionsMap.m[key]}
+		err := ws.WriteJSON(m)
+		if err != nil {
+			log.Printf("96 error: %v", err)
+			ws.Close()
+			delete(clients, ws)
+		}
+	}
 
+	//broadcast new player to all clients
 	ms := ElementsMsg{Plyer: player}
-	broadcastMsg <- ms //broadcast new player
+	broadcastMsg <- ms
 
+	//update player window Width/Height
 	clients[ws] = &player
 	var msg screenWH
 	err := ws.ReadJSON(&msg)
 	if err != nil {
 		log.Printf(" 89 error: %v", err)
-		var plyrMsg = clients[ws]
-		plyrMsg.Show = false
-		ms := ElementsMsg{Plyer: *plyrMsg}
+		var plyr = clients[ws]
+		plyr.Show = false
+		ms := ElementsMsg{Plyer: *plyr}
 		broadcastMsg <- ms
 		delete(clients, ws)
 	}
@@ -117,24 +128,29 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 	player := *clients[ws]
 
 	if y < 0 || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH {
-		player.Collision = "border"
+		player.Collision = true
 	} else {
+		exceptionsMap.Lock()
+		value, ok := exceptionsMap.m[player.P]
+		if ok {
+			delete(exceptionsMap.m, value.P)
+			exceptionsMap.Unlock()
+			value.Show = false
+			ms := ElementsMsg{Excption: value}
+			broadcastMsg <- ms
 
-		//check for collision with other players
-		//for key := range clients {
-		//	client := *clients[key]
-		//	if client.P.X == x ||  client.P.Y == y{
-		//		player.Collision = "player"
-		//	}
-		//}
+			fmt.Println("Ex found is: ", value)
+			player.Score = player.Score+1
+			clients[ws].Score = player.Score
 
-		//TODO add check collisions with exceptions
+		}else{
+			exceptionsMap.Unlock()
+		}
+
 		player.P.X = x
+		player.P.Y = y
 		clients[ws].P.X = x
 		clients[ws].P.Y = y
-		player.P.Y = y
-		fmt.Println("player with new values ")
-		fmt.Println(*clients[ws])
 	}
 
 	ms := ElementsMsg{Plyer: player}
@@ -142,28 +158,27 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 }
 
 func exceptiosMapHandler() {
-	//Thread.
-	// every 5 sec:  create new ex ->add to eXarr -> broadcast to users
-	//every 10 sec:  choose rand ex ->remove from exArr ->broadcast to users
+
+	//time.Sleep(120 *time.Second)
 
 	var r = rand.New(s)
-	addExTicker := time.NewTicker(5 * time.Second)
+	addExTicker := time.NewTicker(15 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
 			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true, Color: [3]int{0, 0, 0}}
-			exceptionsMap.Lock() //take the write lock
+			exceptionsMap.Lock()
 			exceptionsMap.m[newEx.P] = newEx
-			exceptionsMap.Unlock() // release the write lock
+			exceptionsMap.Unlock()
 
-			fmt.Println(newEx)
 			ms := ElementsMsg{Excption: newEx}
 			broadcastMsg <- ms
-
+			fmt.Println("added EX element")
+			fmt.Println(newEx)
 		}
 	}()
 
-	removeExTicker := time.NewTicker(10 * time.Second)
+	removeExTicker := time.NewTicker(30 * time.Second)
 	go func() {
 		for t := range removeExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
@@ -177,17 +192,17 @@ func exceptiosMapHandler() {
 			value.Show = false
 			ms := ElementsMsg{Excption: value}
 			broadcastMsg <- ms
-			//exceptionsMap.Lock() //take the write lock
-			//delete(exceptionsMap, value.p)
-			//exceptionsMap.Unlock() //take the write lock
+			exceptionsMap.Lock()
+			value, ok := exceptionsMap.m[value.P]
+			if ok {
+				delete(exceptionsMap.m, value.P)
+			}
+			exceptionsMap.Unlock()
+			fmt.Println("removed EX element")
 			fmt.Println(value)
-
 		}
 	}()
 
-	// wait for 10 seconds
-	//time.Sleep(20 *time.Second)
-	//	ticker.Stop()
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +255,7 @@ func main() {
 
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
-	// go exceptiosMapHandler()
+	go exceptiosMapHandler()
 
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)

@@ -56,7 +56,7 @@ function App() {
             const filtered = clonePlayers.filter(clonePlayer=> clonePlayer.id !== player.id); 
             return filtered;
           } 
-          if(player.collision === "border"){
+          if(player.collision === true){
             clonePlayers[objIndex].shake = true;
           } 
           clonePlayers[objIndex].p = player.p;
