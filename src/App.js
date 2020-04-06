@@ -48,12 +48,12 @@ function App() {
       const parseData = JSON.parse(event.data);
       const { player } = parseData
       setPlayers(currPlayers => {
-        const objIndex = currPlayers.findIndex(obj => obj.Id === player.Id);
+        const objIndex = currPlayers.findIndex(obj => obj.id === player.id);
         if (objIndex !== -1) {
           const clonePlayers = JSON.parse(JSON.stringify(currPlayers));
           clonePlayers[objIndex].shake = false;
           if(!player.show){
-            const filtered = clonePlayers.filter(clonePlayer=> clonePlayer.Id !== player.Id); 
+            const filtered = clonePlayers.filter(clonePlayer=> clonePlayer.id !== player.id); 
             return filtered;
           } 
           if(player.collision === "border"){
@@ -64,7 +64,7 @@ function App() {
         }
         //add active:true to THIS user
         let newPlayer
-        if(parseData.self.Id === parseData.player.Id){
+        if(parseData.self.id === parseData.player.id){
           newPlayer ={...player,active:true}
         }else{
           newPlayer = {...player}
@@ -93,7 +93,7 @@ function App() {
     <>
       {players.map(player => {
         return (
-          <div key={player.Id}>
+          <div key={player.id}>
               <div className={`playerImg ${player.shake === true ? "shake" : ''}`} style={{ bottom: player.p.y + 'px', left: player.p.x + 'px', color: `rgb(${player.color[0]},${player.color[1]},${player.color[2]})` }}>
                 <span style={{ position: "absolute", top: "-40px", left: "-25px" }}>{player.exceptionType}</span>
                 <img alt="player img" src={player.active? activemonkey : monkey } />
