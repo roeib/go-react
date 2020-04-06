@@ -30,7 +30,7 @@ type point struct {
 }
 
 type Player struct {
-	Id            uuid.UUID `json"id"`
+	Id            uuid.UUID `json:"id"`
 	ExceptionType string    `json:"exceptionType"`
 	Color         [3]int    `json:"color"`
 	P             point     `json:"p"`
@@ -42,7 +42,7 @@ type Player struct {
 }
 
 type Exception struct {
-	Id            uuid.UUID `json"id"`
+	Id            uuid.UUID `json:"id"`
 	ExceptionType string    `json:"exceptionType"`
 	Show          bool      `json:"show"`
 	Color         [3]int    `json:"color"`
