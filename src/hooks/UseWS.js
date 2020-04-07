@@ -3,35 +3,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export const useWebSocket = (url,bounderies) => {
   const [messages, setMessages] = useState([]);
   const webSocket = useRef(null);
-
  
   useEffect(() => {
     webSocket.current = new WebSocket(url);
-    const onMessage = handlefunc;
-    webSocket.current.addEventListener('message', onMessage);
-
-    return () => webSocket.current.removeEventListener('message', onMessage); 
-   }, [url]);
-
-
-   useEffect(() => {
-    const dd = webSocket.current
-    dd.onopen = () => {
-      dd.send(JSON.stringify(bounderies.current))
-    }
-    return () => {
-      dd.onclose = (e) => {
-        console.log("socket close connection", e)
-      }
-    };
-  }, [bounderies]);
-
-
-
-
-
-
-  const handlefunc =()=>{
     webSocket.current.onmessage = (event) => {
       const parseData = JSON.parse(event.data);
       const { player } = parseData
@@ -53,19 +27,38 @@ export const useWebSocket = (url,bounderies) => {
         //add active:true to THIS user
         let newPlayer
         if (parseData.self.id === parseData.player.id) {
+          console.log('self')
           newPlayer = { ...player, active: true }
         } else {
+          console.log('not')
+
           newPlayer = { ...player }
         }
         return [...currPlayers, newPlayer];
       });
     };
-  }
+
+   }, [url]);
+
+
+   useEffect(() => {
+    webSocket.current.onopen = () => {
+      webSocket.current.send(JSON.stringify(bounderies.current))
+    }
+    return () => {
+      webSocket.current.onclose = (e) => {
+        console.log("socket close connection", e)
+      }
+    };
+  }, [bounderies]);
+
+
+ 
 
 
   const sendMessage = useCallback(message => {
     webSocket.current.send(JSON.stringify(message));
   }, [webSocket]);
 
-  return [messages, sendMessage,webSocket]
+  return [messages, sendMessage]
 };
