@@ -39,7 +39,7 @@ type Player struct {
 	windowH       int64
 	windowW       int64
 	Collision     bool `json:"collision"`
-	Score         int    `json:"score"`
+	Score         int  `json:"score"`
 }
 
 type Exception struct {
@@ -90,8 +90,8 @@ func handleNewPlayer(ws *websocket.Conn) {
 	}
 
 	//send to new player all current exceptions
-	for key := range exceptionsMap.m{
-		m := ElementsMsg{Excption:exceptionsMap.m[key]}
+	for key := range exceptionsMap.m {
+		m := ElementsMsg{Excption: exceptionsMap.m[key]}
 		err := ws.WriteJSON(m)
 		if err != nil {
 			log.Printf("96 error: %v", err)
@@ -140,10 +140,10 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 			broadcastMsg <- ms
 
 			fmt.Println("Ex found is: ", value)
-			player.Score = player.Score+1
+			player.Score = player.Score + 1
 			clients[ws].Score = player.Score
 
-		}else{
+		} else {
 			exceptionsMap.Unlock()
 		}
 
@@ -162,7 +162,7 @@ func exceptiosMapHandler() {
 	//time.Sleep(120 *time.Second)
 
 	var r = rand.New(s)
-	addExTicker := time.NewTicker(15 * time.Second)
+	addExTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
@@ -255,7 +255,7 @@ func main() {
 
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
-	go exceptiosMapHandler()
+	// go exceptiosMapHandler()
 
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
