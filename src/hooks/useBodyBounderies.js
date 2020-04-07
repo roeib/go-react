@@ -12,8 +12,5 @@ export const useBodyBounderies = () => {
         }
       }, [])
 
-  
-
-
   return bodyBoundries
 };
