@@ -3,7 +3,7 @@ html {
 }
 
 body {
-  background:url('./bg.jpg');
+  background:url('./assets/bg.jpg');
   background-size: cover;
   min-height: 100%;
 }

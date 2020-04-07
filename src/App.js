@@ -1,8 +1,8 @@
 
 import React, { useCallback } from 'react';
 import './App.css';
-import monkey from './monkey.png'
-import activemonkey from './activemonkey.png'
+import monkey from './assets/monkey.png'
+import activemonkey from './assets/activemonkey.png'
 import { useWebSocket } from './hooks/useWS'
 import { useBodyBounderies } from './hooks/useBodyBounderies'
 import  {ws, playerMoves} from './Utills.js/Utills'
@@ -11,16 +11,11 @@ import { useEventListener } from './hooks/useEventListener'
 function App() {
   const bodyBounderies = useBodyBounderies()
   const [players, sendMSG] = useWebSocket(ws, bodyBounderies)
-
-  const showKeyCode = useCallback(
-    ({ key }) => {
+  const showKeyCode = useCallback(({ key }) => {
       sendMSG(playerMoves[key])
-    },
-    [sendMSG]
-  );
-  useEventListener('keydown', showKeyCode);
- 
+    },[sendMSG]);
 
+  useEventListener('keydown', showKeyCode);
   return (
     <>
       {players.map(player => {
@@ -37,5 +32,3 @@ function App() {
   );
 }
 export default App;
-
-
