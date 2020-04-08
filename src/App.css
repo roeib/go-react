@@ -23,9 +23,19 @@ img{
 .playerImg{
   position: absolute;
   right: 0;
+  max-width: 100px;
 }
 .playerImg.shake{
   animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+}
+.exception{
+  background: black;
+  color: white;
+  position: absolute;
+  left: 50%;
+  margin-left: -50px;
+  top: -40px;
+  padding:5px
 }
 @keyframes shake {
   10%, 90% {
