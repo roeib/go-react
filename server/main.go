@@ -70,7 +70,6 @@ var upgrader = websocket.Upgrader{}
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
 	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: false}
-
 	fmt.Println("new player")
 	fmt.Println(player)
 
@@ -118,15 +117,12 @@ func handleNewPlayer(ws *websocket.Conn) {
 	}
 	clients[ws].windowH = msg.Height
 	clients[ws].windowW = msg.Width
-
 }
 
 func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
-
 	x := int64(clients[ws].P.X) + newX
 	y := int64(clients[ws].P.Y) + newY
 	player := *clients[ws]
-
 	if y < 0 || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH {
 		player.Collision = true
 	} else {
@@ -150,7 +146,6 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 		clients[ws].P.X = x
 		clients[ws].P.Y = y
 	}
-
 	ms := ElementsMsg{Plyer: player}
 	broadcastMsg <- ms
 	fmt.Println("player after score: ", ms.Plyer)
@@ -167,21 +162,15 @@ func exceptionMapHandler(){
 	broadcastMsg <- ms
 	fmt.Println("added EX element")
 	fmt.Println(newEx)
-
 	time.Sleep(50 *time.Second)
 	newEx.Show = false
 	ms = ElementsMsg{Excption: newEx}
 	broadcastMsg <- ms
 	delete(exceptionsMap.m, newEx.P)
-
-
-
 }
 
 func exceptionsMapHandler() {
-
 	time.Sleep(30 *time.Second)
-
 	rand.Seed(time.Now().UnixNano())
 	min := 50
 	max := 300
@@ -190,10 +179,7 @@ func exceptionsMapHandler() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
 			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
-		//	exceptionsMap.Lock()
 			exceptionsMap.m[newEx.P] = newEx
-		//	exceptionsMap.Unlock()
-
 			ms := ElementsMsg{Excption: newEx}
 			broadcastMsg <- ms
 			fmt.Println("added EX element")
@@ -201,46 +187,37 @@ func exceptionsMapHandler() {
 		}
 	}()
 
-	//removeExTicker := time.NewTicker(50 * time.Second)
-	//go func() {
-	//	for t := range removeExTicker.C {
-	//		_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-	//		var value Exception
-	//
-	//		for key := range exceptionsMap.m {
-	//			value = exceptionsMap.m[key]
-	//
-	//			break
-	//		}
-	//		value.Show = false
-	//		ms := ElementsMsg{Excption: value}
-	//		broadcastMsg <- ms
-	//
-	//		value, ok := exceptionsMap.m[value.P]
-	//		if ok {
-	//			delete(exceptionsMap.m, value.P)
-	//		}
-	//
-	//		fmt.Println("removed EX element")
-	//		fmt.Println(value)
-	//	}
-	//}()
+	removeExTicker := time.NewTicker(50 * time.Second)
+	go func() {
+		for t := range removeExTicker.C {
+			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
+			var value Exception
+			for key := range exceptionsMap.m {
+				value = exceptionsMap.m[key]
+				break
+			}
+			value.Show = false
+			ms := ElementsMsg{Excption: value}
+			broadcastMsg <- ms
+			value, ok := exceptionsMap.m[value.P]
+			if ok {
+				delete(exceptionsMap.m, value.P)
+			}
+			fmt.Println("removed EX element")
+			fmt.Println(value)
+		}
+	}()
 
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
-
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true } //no cors
-
 	ws, err := upgrader.Upgrade(w, r, nil) // Upgrade initial GET request to a websocket
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	handleNewPlayer(ws)
-
 	defer ws.Close() // Make sure we close the connection when the function returns
-
 	for {
 		var msg actionMessage
 		err := ws.ReadJSON(&msg)
@@ -253,7 +230,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(clients, ws)
 			break
 		}
-		//INSERT HERE  call to check collision function
 		newX, _ := strconv.ParseInt(msg.X, 10, 64)
 		newY, _ := strconv.ParseInt(msg.Y, 10, 64)
 		handlePlayerMovement(ws, newX, newY)
@@ -275,7 +251,6 @@ func broadcastMessages() {
 
 func main() {
 	fmt.Println("ExceptionalMonkeys ... ")
-
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
 	 go exceptionsMapHandler()
