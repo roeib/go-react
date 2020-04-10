@@ -130,21 +130,23 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 	if y < 0 || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH {
 		player.Collision = true
 	} else {
-		exceptionsMap.Lock()
-		value, ok := exceptionsMap.m[player.P]
-		if ok {
-			delete(exceptionsMap.m, value.P)
-			exceptionsMap.Unlock()
-			value.Show = false
-			ms := ElementsMsg{Excption: value}
-			broadcastMsg <- ms
 
-			fmt.Println("Ex found is: ", value)
-			player.Score = player.Score + 1
-			clients[ws].Score = player.Score
+		for key := range exceptionsMap.m {
+			value := exceptionsMap.m[key]
+			if x+100 >= value.P.X && y>= value.P.Y || x-100 >= value.P.X && y>= value.P.Y {
 
-		} else {
-			exceptionsMap.Unlock()
+				fmt.Println("Ex found is: ", value)
+
+				value.Show = false
+				ms := ElementsMsg{Excption: value}
+				broadcastMsg <- ms
+				delete(exceptionsMap.m, value.P)
+
+				player.Score = player.Score + 1
+				clients[ws].Score = player.Score
+				break
+			}
+
 		}
 
 		player.P.X = x
@@ -155,14 +157,35 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 
 	ms := ElementsMsg{Plyer: player}
 	broadcastMsg <- ms
+	fmt.Println("player after score: ", ms.Plyer)
 }
 
-func exceptiosMapHandler() {
+func exceptionMapHandler(){
+	time.Sleep(30 *time.Second)
+	var r = rand.New(s)
+	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(120), Y: int64(0)}, Show: true, Color: [3]int{0, 0, 0}}
+	exceptionsMap.m[newEx.P] = newEx
+	ms := ElementsMsg{Excption: newEx}
+	broadcastMsg <- ms
+	fmt.Println("added EX element")
+	fmt.Println(newEx)
 
-	//time.Sleep(120 *time.Second)
+	time.Sleep(50 *time.Second)
+	newEx.Show = false
+	ms = ElementsMsg{Excption: newEx}
+	broadcastMsg <- ms
+	delete(exceptionsMap.m, newEx.P)
+
+
+
+}
+
+func exceptionsMapHandler() {
+
+	time.Sleep(30 *time.Second)
 
 	var r = rand.New(s)
-	addExTicker := time.NewTicker(10 * time.Second)
+	addExTicker := time.NewTicker(30 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
@@ -178,26 +201,26 @@ func exceptiosMapHandler() {
 		}
 	}()
 
-	removeExTicker := time.NewTicker(30 * time.Second)
+	removeExTicker := time.NewTicker(40 * time.Second)
 	go func() {
 		for t := range removeExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
 			var value Exception
-			exceptionsMap.RLock()
+
 			for key := range exceptionsMap.m {
 				value = exceptionsMap.m[key]
-				exceptionsMap.RUnlock()
+
 				break
 			}
 			value.Show = false
 			ms := ElementsMsg{Excption: value}
 			broadcastMsg <- ms
-			exceptionsMap.Lock()
+
 			value, ok := exceptionsMap.m[value.P]
 			if ok {
 				delete(exceptionsMap.m, value.P)
 			}
-			exceptionsMap.Unlock()
+
 			fmt.Println("removed EX element")
 			fmt.Println(value)
 		}
@@ -255,8 +278,8 @@ func main() {
 
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
-	// go exceptiosMapHandler()
-
+	// go exceptionsMapHandler()
+    go exceptionMapHandler()
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

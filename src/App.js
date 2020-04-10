@@ -1,7 +1,7 @@
 
 import React, { useCallback } from 'react';
 import './App.css';
-import { useWebSocket } from './hooks/useWS'
+import { useWebSocket } from './hooks/UseWS'
 import { useBodyBounderies } from './hooks/useBodyBounderies'
 import {ws, playerMoves} from './Utills.js/Utills'
 import { useEventListener } from './hooks/useEventListener'
