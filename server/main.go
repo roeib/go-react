@@ -130,25 +130,21 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 	if y < 0 || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH {
 		player.Collision = true
 	} else {
-
 		for key := range exceptionsMap.m {
 			value := exceptionsMap.m[key]
-			if x+100 >= value.P.X && y>= value.P.Y || x-100 >= value.P.X && y>= value.P.Y {
-
+			if (value.ExceptionType == player.ExceptionType) &&
+			   (x == value.P.X || x+50 >= value.P.X || x-50 <= value.P.X) &&
+				(y == value.P.Y || y+50 >= value.P.Y || y-50 <= value.P.Y) {
 				fmt.Println("Ex found is: ", value)
-
 				value.Show = false
 				ms := ElementsMsg{Excption: value}
 				broadcastMsg <- ms
 				delete(exceptionsMap.m, value.P)
-
 				player.Score = player.Score + 1
 				clients[ws].Score = player.Score
 				break
 			}
-
 		}
-
 		player.P.X = x
 		player.P.Y = y
 		clients[ws].P.X = x
@@ -162,8 +158,10 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 
 func exceptionMapHandler(){
 	time.Sleep(30 *time.Second)
-	var r = rand.New(s)
-	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(120), Y: int64(0)}, Show: true, Color: [3]int{0, 0, 0}}
+	rand.Seed(time.Now().UnixNano())
+	min := 50
+	max := 300
+	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
 	exceptionsMap.m[newEx.P] = newEx
 	ms := ElementsMsg{Excption: newEx}
 	broadcastMsg <- ms
@@ -184,15 +182,17 @@ func exceptionsMapHandler() {
 
 	time.Sleep(30 *time.Second)
 
-	var r = rand.New(s)
-	addExTicker := time.NewTicker(30 * time.Second)
+	rand.Seed(time.Now().UnixNano())
+	min := 50
+	max := 300
+	addExTicker := time.NewTicker(40 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[r.Intn(3)], P: point{X: int64(r.Intn(255)), Y: int64(r.Intn(255))}, Show: true, Color: [3]int{0, 0, 0}}
-			exceptionsMap.Lock()
+			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
+		//	exceptionsMap.Lock()
 			exceptionsMap.m[newEx.P] = newEx
-			exceptionsMap.Unlock()
+		//	exceptionsMap.Unlock()
 
 			ms := ElementsMsg{Excption: newEx}
 			broadcastMsg <- ms
@@ -201,30 +201,30 @@ func exceptionsMapHandler() {
 		}
 	}()
 
-	removeExTicker := time.NewTicker(40 * time.Second)
-	go func() {
-		for t := range removeExTicker.C {
-			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var value Exception
-
-			for key := range exceptionsMap.m {
-				value = exceptionsMap.m[key]
-
-				break
-			}
-			value.Show = false
-			ms := ElementsMsg{Excption: value}
-			broadcastMsg <- ms
-
-			value, ok := exceptionsMap.m[value.P]
-			if ok {
-				delete(exceptionsMap.m, value.P)
-			}
-
-			fmt.Println("removed EX element")
-			fmt.Println(value)
-		}
-	}()
+	//removeExTicker := time.NewTicker(50 * time.Second)
+	//go func() {
+	//	for t := range removeExTicker.C {
+	//		_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
+	//		var value Exception
+	//
+	//		for key := range exceptionsMap.m {
+	//			value = exceptionsMap.m[key]
+	//
+	//			break
+	//		}
+	//		value.Show = false
+	//		ms := ElementsMsg{Excption: value}
+	//		broadcastMsg <- ms
+	//
+	//		value, ok := exceptionsMap.m[value.P]
+	//		if ok {
+	//			delete(exceptionsMap.m, value.P)
+	//		}
+	//
+	//		fmt.Println("removed EX element")
+	//		fmt.Println(value)
+	//	}
+	//}()
 
 }
 
@@ -278,8 +278,8 @@ func main() {
 
 	http.HandleFunc("/ws", handleConnections)
 	go broadcastMessages()
-	// go exceptionsMapHandler()
-    go exceptionMapHandler()
+	 go exceptionsMapHandler()
+  //  go exceptionMapHandler()
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
