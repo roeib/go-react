@@ -46,7 +46,11 @@ const counterReducer = (state, action) => {
 
       };
     case "EXCEPTIONS":
-      return { ...state };
+      const {exception} = action.by
+      return { 
+        ...state,
+        exceptions: [ ...state.exceptions, exception]
+      };
     default:
       throw new Error();
   }
@@ -60,8 +64,8 @@ export const useWebSocket = (url, bounderies) => {
     webSocket.current = new WebSocket(url);
     webSocket.current.onmessage = (event) => {
       const parseData = JSON.parse(event.data);
-      if (parseData.player.id === '00000000-0000-0000-0000-000000000000') {
-        // dispatch({ type: "EXCEPTIONS", by: parseData });
+      if (parseData.player === null) {
+        dispatch({ type: "EXCEPTIONS", by: parseData });
         return
       } else {
         dispatch({ type: "PLAYER", by: parseData });
