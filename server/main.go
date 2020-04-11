@@ -26,28 +26,28 @@ type screenWH struct {
 }
 
 type point struct {
-	X int64  `json:"x,omitempty"`
-	Y int64  `json:"y,omitempty"`
+	X int64  `json:"x"`
+	Y int64  `json:"y"`
 }
 
 type Player struct {
-	Id            uuid.UUID `json:"id,omitempty"`
-	ExceptionType string    `json:"exceptionType,omitempty"`
-	Color         [3]int    `json:"color,omitempty"`
-	P             *point     `json:"p,omitempty"`
-	Show          bool      `json:"show,omitempty"`
+	Id            uuid.UUID `json:"id"`
+	ExceptionType string    `json:"exceptionType"`
+	Color         [3]int    `json:"color"`
+	P             *point     `json:"p"`
+	Show          bool      `json:"show"`
 	windowH       int64
 	windowW       int64
-	Collision     bool `json:"collision,omitempty"`
-	Score         int  `json:"score,omitempty"`
+	Collision     bool `json:"collision"`
+	Score         int  `json:"score"`
 }
 
 type Exception struct {
-	Id            uuid.UUID `json:"id,omitempty"`
-	ExceptionType string    `json:"exceptionType,omitempty"`
-	Show          bool      `json:"show,omitempty"`
-	Color         [3]int    `json:"color,omitempty"`
-	P             *point     `json:"p,omitempty"`
+	Id            uuid.UUID `json:"id"`
+	ExceptionType string    `json:"exceptionType"`
+	Show          bool      `json:"show"`
+	Color         [3]int    `json:"color"`
+	P             *point     `json:"p"`
 }
 
 type ElementsMsg struct {
