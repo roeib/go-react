@@ -27,7 +27,7 @@ type screenWH struct {
 
 type point struct {
 	X int64  `json:"x,omitempty"`
-	Y int64 `json:"y,omitempty"`
+	Y int64  `json:"y,omitempty"`
 }
 
 type Player struct {
@@ -47,13 +47,13 @@ type Exception struct {
 	ExceptionType string    `json:"exceptionType,omitempty"`
 	Show          bool      `json:"show,omitempty"`
 	Color         [3]int    `json:"color,omitempty"`
-	P             point     `json:"p,omitempty"`
+	P             *point     `json:"p,omitempty"`
 }
 
 type ElementsMsg struct {
-	Self     *Player    `json:"self, omitempty"`
-	Plyer    *Player    `json:"player, omitempty"`
-	Excption *Exception `json:"exception, omitempty"`
+	Self     *Player    `json:"self,omitempty"`
+	Plyer    *Player    `json:"player,omitempty"`
+	Excption *Exception `json:"exception,omitempty"`
 }
 
 var exceptionsMap = struct {
@@ -68,8 +68,8 @@ var broadcastMsg = make(chan ElementsMsg)
 var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
-	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: &point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: false}
+	rand.Seed(time.Now().UnixNano())
+	player := Player{Id: uuid.New(), P: &point{X: int64(rand.Intn(300)), Y: int64(rand.Intn(300))}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{rand.Intn(256), rand.Intn(256), rand.Intn(256)}, Collision: false}
 	fmt.Println("new player")
 	fmt.Println(player)
 
@@ -135,7 +135,7 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 				value.Show = false
 				ms := ElementsMsg{Excption: &value}
 				broadcastMsg <- ms
-				delete(exceptionsMap.m, value.P)
+				delete(exceptionsMap.m, *value.P)
 				player.Score = player.Score + 1
 				clients[ws].Score = player.Score
 				break
@@ -156,8 +156,8 @@ func exceptionMapHandler(){
 	rand.Seed(time.Now().UnixNano())
 	min := 50
 	max := 300
-	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
-	exceptionsMap.m[newEx.P] = newEx
+	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: &point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
+	exceptionsMap.m[*newEx.P] = newEx
 	ms := ElementsMsg{Excption: &newEx}
 	broadcastMsg <- ms
 	fmt.Println("added EX element")
@@ -166,7 +166,7 @@ func exceptionMapHandler(){
 	newEx.Show = false
 	ms = ElementsMsg{Excption: &newEx}
 	broadcastMsg <- ms
-	delete(exceptionsMap.m, newEx.P)
+	delete(exceptionsMap.m, *newEx.P)
 }
 
 func exceptionsMapHandler() {
@@ -178,8 +178,8 @@ func exceptionsMapHandler() {
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
-			exceptionsMap.m[newEx.P] = newEx
+			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: &point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
+			exceptionsMap.m[*newEx.P] = newEx
 			ms := ElementsMsg{Excption: &newEx}
 			broadcastMsg <- ms
 			fmt.Println("added EX element")
@@ -199,9 +199,9 @@ func exceptionsMapHandler() {
 			value.Show = false
 			ms := ElementsMsg{Excption: &value}
 			broadcastMsg <- ms
-			value, ok := exceptionsMap.m[value.P]
+			value, ok := exceptionsMap.m[*value.P]
 			if ok {
-				delete(exceptionsMap.m, value.P)
+				delete(exceptionsMap.m, *value.P)
 			}
 			fmt.Println("removed EX element")
 			fmt.Println(value)
