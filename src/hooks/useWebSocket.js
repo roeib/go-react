@@ -7,17 +7,15 @@ const counterReducer = (state, action) => {
       const objIndex = state.findIndex(obj => obj.id === player.id);
       if (objIndex !== -1) {
         const clonePlayers = JSON.parse(JSON.stringify(state));
-        //delete animation
-        clonePlayers[objIndex].shake = false;
 
         //check if player need to be seen in the screen if not remove from players
         if (!player.show) {
-          const filtered = clonePlayers.filter(clonePlayer => clonePlayer.id !== player.id);
-          return filtered;
+          clonePlayers.splice(objIndex, 1);
+          return clonePlayers;
         }
 
         //check if player hit bounderies and add animation
-        if (player.collision) clonePlayers[objIndex].shake = true
+        player.collision ? clonePlayers[objIndex].shake =true : clonePlayers[objIndex].shake =false
 
         //change player cordinates on screen
         clonePlayers[objIndex].p = player.p;
@@ -61,6 +59,7 @@ export const useWebSocket = (url, bounderies) => {
   }, [bounderies]);
 
   const sendMessage = useCallback(message => {
+    if(!message) return
     webSocket.current.send(JSON.stringify(message));
   }, [webSocket]);
 
