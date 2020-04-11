@@ -9,7 +9,7 @@ import Monkeys from './components/Monkeys'
 
 function App() {
   const bodyBounderies = useBodyBounderies()
-  const [players, sendMSG] = useWebSocket(ws, bodyBounderies)
+  const [playState, sendMSG] = useWebSocket(ws, bodyBounderies)
   const showKeyCode = useCallback(({ key }) => {
       sendMSG(playerMoves[key])
     },[sendMSG]);
@@ -19,9 +19,9 @@ function App() {
     <>
     <div>
       <h2>Score</h2>
-      {players.map(player => <div>{player.id} - {player.score}</div>)}
+      {playState.players.map(player => <div>{player.id} - {player.score}</div>)}
     </div>
-    <Monkeys players={players} />
+    <Monkeys players={playState.players} />
     </>
   );
 }

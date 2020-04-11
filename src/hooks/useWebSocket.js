@@ -1,25 +1,34 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
-const initialState = [];
+const initialState = {
+  exceptions: [],
+  players: []
+};
 const counterReducer = (state, action) => {
   switch (action.type) {
-    case "INCOMINGMSG":
+    case "PLAYER":
       const { player } = action.by
-      const objIndex = state.findIndex(obj => obj.id === player.id);
+      const objIndex = state.players.findIndex(obj => obj.id === player.id);
       if (objIndex !== -1) {
-        const clonePlayers = JSON.parse(JSON.stringify(state));
+        const clonePlayers = JSON.parse(JSON.stringify(state.players));
 
         //check if player need to be seen in the screen if not remove from players
         if (!player.show) {
           clonePlayers.splice(objIndex, 1);
-          return clonePlayers;
+          return {
+            ...state,
+            players: clonePlayers
+          }
         }
 
         //check if player hit bounderies and add animation
-        player.collision ? clonePlayers[objIndex].shake =true : clonePlayers[objIndex].shake =false
+        player.collision ? clonePlayers[objIndex].shake = true : clonePlayers[objIndex].shake = false
 
         //change player cordinates on screen
         clonePlayers[objIndex].p = player.p;
-        return clonePlayers;
+        return {
+          ...state,
+          players: clonePlayers
+        }
       }
       //add active:true to the user that open connection with socket
       let newPlayer
@@ -28,7 +37,16 @@ const counterReducer = (state, action) => {
       } else {
         newPlayer = { ...player }
       }
-      return [...state, newPlayer];
+      return {
+        ...state,
+        players: [
+          ...state.players,
+          newPlayer
+        ]
+
+      };
+    case "EXCEPTIONS":
+      return { ...state };
     default:
       throw new Error();
   }
@@ -42,7 +60,12 @@ export const useWebSocket = (url, bounderies) => {
     webSocket.current = new WebSocket(url);
     webSocket.current.onmessage = (event) => {
       const parseData = JSON.parse(event.data);
-      dispatch({ type: "INCOMINGMSG", by: parseData });
+      if (parseData.player.id === '00000000-0000-0000-0000-000000000000') {
+        // dispatch({ type: "EXCEPTIONS", by: parseData });
+        return
+      } else {
+        dispatch({ type: "PLAYER", by: parseData });
+      }
     };
   }, [url]);
 
@@ -59,7 +82,7 @@ export const useWebSocket = (url, bounderies) => {
   }, [bounderies]);
 
   const sendMessage = useCallback(message => {
-    if(!message) return
+    if (!message) return
     webSocket.current.send(JSON.stringify(message));
   }, [webSocket]);
 
