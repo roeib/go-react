@@ -74,7 +74,7 @@ func handleNewPlayer(ws *websocket.Conn) {
 	fmt.Println(player)
 
 	//send to client active player as self
-	m := ElementsMsg{Self: &player, Plyer: &player}
+	m := ElementsMsg{Self: &player}
 	ws.WriteJSON(m)
 	//send to new player all current players
 	for key := range clients {
