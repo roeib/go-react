@@ -1,11 +1,12 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
+
 const initialState = {
   exceptions: [],
   players: []
 };
 const counterReducer = (state, action) => {
   switch (action.type) {
-    case "PLAYER":
+    case "player":
       const { player } = action.by
       const objIndex = state.players.findIndex(obj => obj.id === player.id);
       if (objIndex !== -1) {
@@ -30,26 +31,28 @@ const counterReducer = (state, action) => {
           players: clonePlayers
         }
       }
-      //add active:true to the user that open connection with socket
-      let newPlayer
-      if (action.by.self.id === action.by.player.id) {
-        newPlayer = { ...player, active: true }
-      } else {
-        newPlayer = { ...player }
-      }
+      return {
+        ...state,
+        players: [
+          ...state.players,
+          player
+        ]
+      };
+    case "exception":
+      const { exception } = action.by
+      return {
+        ...state,
+        exceptions: [...state.exceptions, exception]
+      };
+    case "self":
+      const { self } = action.by
+      let newPlayer = { ...self, active: true }
       return {
         ...state,
         players: [
           ...state.players,
           newPlayer
         ]
-
-      };
-    case "EXCEPTIONS":
-      const {exception} = action.by
-      return { 
-        ...state,
-        exceptions: [ ...state.exceptions, exception]
       };
     default:
       throw new Error();
@@ -64,12 +67,9 @@ export const useWebSocket = (url, bounderies) => {
     webSocket.current = new WebSocket(url);
     webSocket.current.onmessage = (event) => {
       const parseData = JSON.parse(event.data);
-      if (parseData.player === null) {
-        dispatch({ type: "EXCEPTIONS", by: parseData });
-        return
-      } else {
-        dispatch({ type: "PLAYER", by: parseData });
-      }
+    
+      const [wsInfo] = Object.getOwnPropertyNames(parseData)
+      dispatch({ type: wsInfo, by: parseData });
     };
   }, [url]);
 

@@ -19,9 +19,9 @@ function App() {
     <>
     <div>
       <h2>Score</h2>
-      {playState.players.map(player => <div>{player.id} - {player.score}</div>)}
+      {playState.players.map(player => <div key={player.id}>{player.id} - {player.score}</div>)}
     </div>
-    {playState.exceptions.map(exception => <div style={{ position: 'absolute',bottom: exception.p.y + 'px', left: exception.p.x + 'px' }}>exception</div>)}
+    {playState.exceptions.map(exception => <div key={Math.random()} style={{ position: 'absolute',bottom: exception.p.y + 'px', left: exception.p.x + 'px' }}>exception</div>)}
 
     <Monkeys players={playState.players} />
     </>
