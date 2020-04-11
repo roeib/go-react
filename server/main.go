@@ -26,34 +26,34 @@ type screenWH struct {
 }
 
 type point struct {
-	X int64 `json:"x"`
-	Y int64 `json:"y"`
+	X int64  `json:"x,omitempty"`
+	Y int64 `json:"y,omitempty"`
 }
 
 type Player struct {
-	Id            uuid.UUID `json:"id"`
-	ExceptionType string    `json:"exceptionType"`
-	Color         [3]int    `json:"color"`
-	P             point     `json:"p"`
-	Show          bool      `json:"show"`
+	Id            uuid.UUID `json:"id,omitempty"`
+	ExceptionType string    `json:"exceptionType,omitempty"`
+	Color         [3]int    `json:"color,omitempty"`
+	P             *point     `json:"p,omitempty"`
+	Show          bool      `json:"show,omitempty"`
 	windowH       int64
 	windowW       int64
-	Collision     bool `json:"collision"`
-	Score         int  `json:"score"`
+	Collision     bool `json:"collision,omitempty"`
+	Score         int  `json:"score,omitempty"`
 }
 
 type Exception struct {
-	Id            uuid.UUID `json:"id"`
-	ExceptionType string    `json:"exceptionType"`
-	Show          bool      `json:"show"`
-	Color         [3]int    `json:"color"`
-	P             point     `json:"p"`
+	Id            uuid.UUID `json:"id,omitempty"`
+	ExceptionType string    `json:"exceptionType,omitempty"`
+	Show          bool      `json:"show,omitempty"`
+	Color         [3]int    `json:"color,omitempty"`
+	P             point     `json:"p,omitempty"`
 }
 
 type ElementsMsg struct {
-	Self     Player    `json:"self"`
-	Plyer    Player    `json:"player"`
-	Excption Exception `json:"exception"`
+	Self     *Player    `json:"self, omitempty"`
+	Plyer    *Player    `json:"player, omitempty"`
+	Excption *Exception `json:"exception, omitempty"`
 }
 
 var exceptionsMap = struct {
@@ -69,17 +69,16 @@ var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	r2 := rand.New(s)
-	player := Player{Id: uuid.New(), P: point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: false}
+	player := Player{Id: uuid.New(), P: &point{X: int64(r2.Intn(300)), Y: 0}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{r2.Intn(256), r2.Intn(256), r2.Intn(256)}, Collision: false}
 	fmt.Println("new player")
 	fmt.Println(player)
 
 	//send to client active player as self
-	m := ElementsMsg{Self: player, Plyer: player}
+	m := ElementsMsg{Self: &player, Plyer: &player}
 	ws.WriteJSON(m)
-
 	//send to new player all current players
 	for key := range clients {
-		m := ElementsMsg{Plyer: *clients[key]}
+		m := ElementsMsg{Plyer: clients[key]}
 		err := ws.WriteJSON(m)
 		if err != nil {
 			log.Printf("84 error: %v", err)
@@ -90,7 +89,8 @@ func handleNewPlayer(ws *websocket.Conn) {
 
 	//send to new player all current exceptions
 	for key := range exceptionsMap.m {
-		m := ElementsMsg{Excption: exceptionsMap.m[key]}
+		var e = exceptionsMap.m[key]
+		m := ElementsMsg{Excption: &e}
 		err := ws.WriteJSON(m)
 		if err != nil {
 			log.Printf("96 error: %v", err)
@@ -100,7 +100,7 @@ func handleNewPlayer(ws *websocket.Conn) {
 	}
 
 	//broadcast new player to all clients
-	ms := ElementsMsg{Plyer: player}
+	ms := ElementsMsg{Plyer: &player}
 	broadcastMsg <- ms
 
 	//update player window Width/Height
@@ -111,7 +111,7 @@ func handleNewPlayer(ws *websocket.Conn) {
 		log.Printf(" 89 error: %v", err)
 		var plyr = clients[ws]
 		plyr.Show = false
-		ms := ElementsMsg{Plyer: *plyr}
+		ms := ElementsMsg{Plyer: plyr}
 		broadcastMsg <- ms
 		delete(clients, ws)
 	}
@@ -133,7 +133,7 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 				(y == value.P.Y || y+50 >= value.P.Y || y-50 <= value.P.Y) {
 				fmt.Println("Ex found is: ", value)
 				value.Show = false
-				ms := ElementsMsg{Excption: value}
+				ms := ElementsMsg{Excption: &value}
 				broadcastMsg <- ms
 				delete(exceptionsMap.m, value.P)
 				player.Score = player.Score + 1
@@ -146,9 +146,9 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 		clients[ws].P.X = x
 		clients[ws].P.Y = y
 	}
-	ms := ElementsMsg{Plyer: player}
+	ms := ElementsMsg{Plyer: &player}
 	broadcastMsg <- ms
-	fmt.Println("player after score: ", ms.Plyer)
+
 }
 
 func exceptionMapHandler(){
@@ -158,13 +158,13 @@ func exceptionMapHandler(){
 	max := 300
 	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
 	exceptionsMap.m[newEx.P] = newEx
-	ms := ElementsMsg{Excption: newEx}
+	ms := ElementsMsg{Excption: &newEx}
 	broadcastMsg <- ms
 	fmt.Println("added EX element")
 	fmt.Println(newEx)
 	time.Sleep(50 *time.Second)
 	newEx.Show = false
-	ms = ElementsMsg{Excption: newEx}
+	ms = ElementsMsg{Excption: &newEx}
 	broadcastMsg <- ms
 	delete(exceptionsMap.m, newEx.P)
 }
@@ -180,7 +180,7 @@ func exceptionsMapHandler() {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
 			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
 			exceptionsMap.m[newEx.P] = newEx
-			ms := ElementsMsg{Excption: newEx}
+			ms := ElementsMsg{Excption: &newEx}
 			broadcastMsg <- ms
 			fmt.Println("added EX element")
 			fmt.Println(newEx)
@@ -197,7 +197,7 @@ func exceptionsMapHandler() {
 				break
 			}
 			value.Show = false
-			ms := ElementsMsg{Excption: value}
+			ms := ElementsMsg{Excption: &value}
 			broadcastMsg <- ms
 			value, ok := exceptionsMap.m[value.P]
 			if ok {
@@ -225,7 +225,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			log.Printf("206 error: %v", err)
 			plyrMsg := clients[ws]
 			plyrMsg.Show = false
-			ms := ElementsMsg{Plyer: *plyrMsg}
+			ms := ElementsMsg{Plyer: plyrMsg}
 			broadcastMsg <- ms
 			delete(clients, ws)
 			break
