@@ -25,7 +25,8 @@ const counterReducer = (state, action) => {
         player.collision ? clonePlayers[objIndex].shake = true : clonePlayers[objIndex].shake = false
 
         //change player cordinates on screen
-        clonePlayers[objIndex].p = player.p;
+        clonePlayers[objIndex].p = player.p;      
+        clonePlayers[objIndex].score = player.score;
         return {
           ...state,
           players: clonePlayers
@@ -40,11 +41,11 @@ const counterReducer = (state, action) => {
       };
     case "exception":
       const { exception } = action.by
-      const objIndex = state.exceptions.findIndex(obj => obj.id === exception.id);
-      if (objIndex !== -1) {
+      const exceptionIndex = state.exceptions.findIndex(obj => obj.id === exception.id);
+      if (exceptionIndex !== -1) {
         const cloneExceptions = JSON.parse(JSON.stringify(state.exceptions));
         if (!exception.show) {
-          cloneExceptions.splice(objIndex, 1);
+          cloneExceptions.splice(exceptionIndex, 1);
           return {
             ...state,
             exceptions: cloneExceptions
