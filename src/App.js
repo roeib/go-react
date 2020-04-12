@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import './App.css';
 import { useWebSocket } from './hooks/useWebSocket'
 import { useBodyBounderies } from './hooks/useBodyBounderies'
-import {ws, playerMoves} from './Utills.js/Utills'
+import {ws, playerMoves} from './Utils.js/Utils'
 import { useEventListener } from './hooks/useEventListener'
 import Monkeys from './components/Monkeys'
 

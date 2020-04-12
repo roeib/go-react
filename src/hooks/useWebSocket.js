@@ -40,6 +40,17 @@ const counterReducer = (state, action) => {
       };
     case "exception":
       const { exception } = action.by
+      const objIndex = state.exceptions.findIndex(obj => obj.id === exception.id);
+      if (objIndex !== -1) {
+        const cloneExceptions = JSON.parse(JSON.stringify(state.exceptions));
+        if (!exception.show) {
+          cloneExceptions.splice(objIndex, 1);
+          return {
+            ...state,
+            exceptions: cloneExceptions
+          }
+        }
+      }
       return {
         ...state,
         exceptions: [...state.exceptions, exception]
