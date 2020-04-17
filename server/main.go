@@ -25,16 +25,12 @@ type screenWH struct {
 	Height int64 // "0" || "10" ||  "-10"
 }
 
-type point struct {
-	X int64  `json:"x"`
-	Y int64  `json:"y"`
-}
-
 type Player struct {
 	Id            uuid.UUID `json:"id"`
 	ExceptionType string    `json:"exceptionType"`
 	Color         [3]int    `json:"color"`
-	P             *point     `json:"p"`
+	X int64  `json:"x"`
+	Y int64  `json:"y"`
 	Show          bool      `json:"show"`
 	windowH       int64
 	windowW       int64
@@ -47,7 +43,8 @@ type Exception struct {
 	ExceptionType string    `json:"exceptionType"`
 	Show          bool      `json:"show"`
 	Color         [3]int    `json:"color"`
-	P             *point     `json:"p"`
+	X int64  `json:"x"`
+	Y int64  `json:"y"`
 }
 
 type ElementsMsg struct {
@@ -58,9 +55,81 @@ type ElementsMsg struct {
 
 var exceptionsMap = struct {
 	sync.RWMutex
-	m map[point]Exception
-}{m: make(map[point]Exception)}
+	items [3]Exception
+}{}
 
+//todo amount of exceptions according to amount of possible exceptions?
+func initExceptionsList(){
+	exceptionsMap.Lock()
+	defer exceptionsMap.Unlock()
+
+	for j := 0; j < 3; j++ {
+		exceptionsMap.items[j] = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], X: 0, Y: 0, Show: false}
+	}
+}
+
+func Set()Exception {
+	rand.Seed(time.Now().UnixNano())
+	min := 50
+	max := 300
+	exceptionsMap.Lock()
+	defer exceptionsMap.Unlock()
+
+	var indx =0
+
+	for j := 0; j < 3; j++ {
+		if !(exceptionsMap.items[j].Show){
+			exceptionsMap.items[j].Show = true
+			exceptionsMap.items[j].X= int64(rand.Intn(max - min + 1) + min)
+			exceptionsMap.items[j].Y= int64(rand.Intn(max - min + 1) + min)
+			indx = j
+			break
+		}
+	}
+	//	fmt.Println("timer: added EX element")
+	//fmt.Println(value)
+	var res = exceptionsMap.items[indx]
+	return res
+}
+
+func RemoveRand() Exception {
+	exceptionsMap.Lock()
+	defer exceptionsMap.Unlock()
+
+	var indx =0
+
+	for j := 0; j < 3; j++ {
+		if !(exceptionsMap.items[j].Show){
+			exceptionsMap.items[j].Show = false
+			indx = j
+			break
+		}
+	}
+	//	fmt.Println("timer: added EX element")
+	//fmt.Println(value)
+	var res = exceptionsMap.items[indx]
+	return res
+}
+
+func RemoveIfPossible(newX int64, newY int64 ,player Player ) (Exception, bool) {
+	exceptionsMap.Lock()
+	defer exceptionsMap.Unlock()
+	var value Exception
+	for j:= 0; j< 3; j++{
+		value=exceptionsMap.items[j]
+		if value.Show {
+			if (value.ExceptionType == player.ExceptionType) &&
+			(newX == value.X || newX+50 >= value.X || newX-50 <= value.X) &&
+			(newY == value.Y || newY+50 >= value.Y || newY-50 <= value.Y) {
+			fmt.Println("Ex found is: ", value)
+			value.Show = false
+			exceptionsMap.items[j].Show=false
+			return value, true
+			}
+		}
+	}
+	return value, false
+}
 var s = rand.NewSource(time.Now().UnixNano())
 var exceptionsTypes = [3]string{"NullPointerException", "DivideByZeroException", "IOException"}
 var clients = make(map[*websocket.Conn]*Player) // connected clients
@@ -69,7 +138,7 @@ var upgrader = websocket.Upgrader{}
 
 func handleNewPlayer(ws *websocket.Conn) {
 	rand.Seed(time.Now().UnixNano())
-	player := Player{Id: uuid.New(), P: &point{X: int64(rand.Intn(300)), Y: int64(rand.Intn(300))}, Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{rand.Intn(256), rand.Intn(256), rand.Intn(256)}, Collision: false}
+	player := Player{Id: uuid.New(), X: int64(rand.Intn(300)), Y: int64(rand.Intn(300)), Score: 0, Show: true, ExceptionType: exceptionsTypes[rand.Intn(3)], Color: [3]int{rand.Intn(256), rand.Intn(256), rand.Intn(256)}, Collision: false}
 	fmt.Println("new player")
 	fmt.Println(player)
 
@@ -82,18 +151,6 @@ func handleNewPlayer(ws *websocket.Conn) {
 		err := ws.WriteJSON(m)
 		if err != nil {
 			log.Printf("84 error: %v", err)
-			ws.Close()
-			delete(clients, ws)
-		}
-	}
-
-	//send to new player all current exceptions
-	for key := range exceptionsMap.m {
-		var e = exceptionsMap.m[key]
-		m := ElementsMsg{Excption: &e}
-		err := ws.WriteJSON(m)
-		if err != nil {
-			log.Printf("96 error: %v", err)
 			ws.Close()
 			delete(clients, ws)
 		}
@@ -120,70 +177,40 @@ func handleNewPlayer(ws *websocket.Conn) {
 }
 
 func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
-	x := int64(clients[ws].P.X) + newX
-	y := int64(clients[ws].P.Y) + newY
+	x := int64(clients[ws].X) + newX
+	y := int64(clients[ws].Y) + newY
 	player := *clients[ws]
 	if y < 0 || x < 0 || x >= clients[ws].windowW || y >= clients[ws].windowH {
 		player.Collision = true
 	} else {
-		for key := range exceptionsMap.m {
-			value := exceptionsMap.m[key]
-			if (value.ExceptionType == player.ExceptionType) &&
-			   (x == value.P.X || x+50 >= value.P.X || x-50 <= value.P.X) &&
-				(y == value.P.Y || y+50 >= value.P.Y || y-50 <= value.P.Y) {
-				fmt.Println("Ex found is: ", value)
-				value.Show = false
-				ms := ElementsMsg{Excption: &value}
-				broadcastMsg <- ms
-				delete(exceptionsMap.m, *value.P)
-				player.Score = player.Score + 1
-				clients[ws].Score = player.Score
-				break
-			}
+		value, ok:= RemoveIfPossible(x,y,player)
+		if ok {
+			ms := ElementsMsg{Excption: &value}
+			broadcastMsg <- ms
+			player.Score = player.Score + 1
+			clients[ws].Score = player.Score
 		}
-		player.P.X = x
-		player.P.Y = y
-		clients[ws].P.X = x
-		clients[ws].P.Y = y
+		player.X = x
+		player.Y = y
+		clients[ws].X = x
+		clients[ws].Y = y
 	}
 	ms := ElementsMsg{Plyer: &player}
 	broadcastMsg <- ms
-
-}
-
-func exceptionMapHandler(){
-	time.Sleep(30 *time.Second)
-	rand.Seed(time.Now().UnixNano())
-	min := 50
-	max := 300
-	var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: &point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
-	exceptionsMap.m[*newEx.P] = newEx
-	ms := ElementsMsg{Excption: &newEx}
-	broadcastMsg <- ms
-	fmt.Println("added EX element")
-	fmt.Println(newEx)
-	time.Sleep(50 *time.Second)
-	newEx.Show = false
-	ms = ElementsMsg{Excption: &newEx}
-	broadcastMsg <- ms
-	delete(exceptionsMap.m, *newEx.P)
+	fmt.Println("msg sent with new score: ")
+	fmt.Println(ms)
 }
 
 func exceptionsMapHandler() {
 	time.Sleep(30 *time.Second)
-	rand.Seed(time.Now().UnixNano())
-	min := 50
-	max := 300
+
 	addExTicker := time.NewTicker(40 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var newEx = Exception{Id: uuid.New(), ExceptionType: exceptionsTypes[rand.Intn(3)], P: &point{X: int64(rand.Intn(max - min + 1) + min), Y: int64(rand.Intn(max - min + 1) + min)}, Show: true, Color: [3]int{0, 0, 0}}
-			exceptionsMap.m[*newEx.P] = newEx
+			newEx := Set()
 			ms := ElementsMsg{Excption: &newEx}
 			broadcastMsg <- ms
-			fmt.Println("added EX element")
-			fmt.Println(newEx)
 		}
 	}()
 
@@ -191,20 +218,9 @@ func exceptionsMapHandler() {
 	go func() {
 		for t := range removeExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			var value Exception
-			for key := range exceptionsMap.m {
-				value = exceptionsMap.m[key]
-				break
-			}
-			value.Show = false
+			value :=RemoveRand()
 			ms := ElementsMsg{Excption: &value}
 			broadcastMsg <- ms
-			value, ok := exceptionsMap.m[*value.P]
-			if ok {
-				delete(exceptionsMap.m, *value.P)
-			}
-			fmt.Println("removed EX element")
-			fmt.Println(value)
 		}
 	}()
 
@@ -252,9 +268,10 @@ func broadcastMessages() {
 func main() {
 	fmt.Println("ExceptionalMonkeys ... ")
 	http.HandleFunc("/ws", handleConnections)
+	initExceptionsList()
 	go broadcastMessages()
-	 go exceptionsMapHandler()
-  //  go exceptionMapHandler()
+	go exceptionsMapHandler()
+
 	log.Println("http server started on :8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
