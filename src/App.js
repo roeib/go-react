@@ -32,7 +32,7 @@ function App() {
       {
         playState.exceptions.map(exception => {
           return (
-            <div key={Math.random()} style={{ position: 'absolute', bottom: exception.p.y + 'px', left: exception.p.x + 'px' }}>
+            <div key={Math.random()} style={{ position: 'absolute', bottom: exception.y + 'px', left: exception.x + 'px' }}>
               <img src={exceptionsImg[exception.exceptionType]} alt=""/>
             </div>
           )
