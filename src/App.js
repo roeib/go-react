@@ -21,7 +21,7 @@ function App() {
       <h2>Score</h2>
       {playState.players.map(player => <div key={player.id}>{player.active? "You" : player.exceptionType} - {player.score}</div>)}
     </div>
-    {playState.exceptions.map(exception => <div key={Math.random()} style={{ position: 'absolute',bottom: exception.p.y + 'px', left: exception.p.x + 'px' }}>{exception.exceptionType}</div>)}
+    {playState.exceptions.map(exception => <div key={Math.random()} style={{ position: 'absolute',bottom: exception.y + 'px', left: exception.x + 'px' }}>{exception.exceptionType}</div>)}
 
     <Monkeys players={playState.players} />
     </>
