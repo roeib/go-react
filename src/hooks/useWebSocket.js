@@ -25,7 +25,8 @@ const counterReducer = (state, action) => {
         player.collision ? clonePlayers[objIndex].shake = true : clonePlayers[objIndex].shake = false
 
         //change player cordinates on screen
-        clonePlayers[objIndex].p = player.p;      
+        clonePlayers[objIndex].p = player.p; 
+        //change player score     
         clonePlayers[objIndex].score = player.score;
         return {
           ...state,
