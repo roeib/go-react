@@ -76,7 +76,6 @@ export const useWebSocket = (url, bounderies) => {
 
   useEffect(() => {
     webSocket.current = new WebSocket(url);
-    
     webSocket.current.onmessage = (event) => {
       const parseData = JSON.parse(event.data);
       const [wsInfo] = Object.getOwnPropertyNames(parseData)
@@ -102,5 +101,5 @@ export const useWebSocket = (url, bounderies) => {
     webSocket.current.send(JSON.stringify(message));
   }, [webSocket]);
 
-  return [messages, sendMessage,webSocket]
+  return [messages, sendMessage,webSocket.current]
 };

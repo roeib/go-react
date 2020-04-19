@@ -16,21 +16,24 @@ function App() {
   const showKeyCode = useCallback(({ key }) => {
     sendMSG(playerMoves[key])
   }, [sendMSG]);
-
+  
   useEventListener('keydown', showKeyCode);
   return (
     <>      
-    {webSocket.current === null && <Dialog msg="waiting for Server"/> }
-    {
-        playState.players.length === 1 ?
-        <Dialog msg={'Waiting for other players to play'} />
-        :
-        <>
-          <Score players={playState.players} />
-          <Exceptions exceptions={playState.exceptions} />
-          <Monkeys players={playState.players} />
-        </>
-      }
+    { webSocket && webSocket.readyState === 1 ?
+      playState.players.length === 1 ?
+      <Dialog msg={'Waiting for other players to play'} />
+      :
+      <>
+        <Score players={playState.players} />
+        <Exceptions exceptions={playState.exceptions} />
+        <Monkeys players={playState.players} />
+      </>
+      :
+      <Dialog msg={'Waiting for server'} />
+
+    }
+
     </>
   );
 }
