@@ -4,14 +4,13 @@ const initialState = {
   exceptions: [],
   players: []
 };
-const counterReducer = (state, action) => {
+const gameReducer = (state, action) => {
   switch (action.type) {
     case "player":
       const { player } = action.by
       const objIndex = state.players.findIndex(obj => obj.id === player.id);
       if (objIndex !== -1) {
         const clonePlayers = JSON.parse(JSON.stringify(state.players));
-
         //check if player need to be seen in the screen if not remove from players
         if (!player.show) {
           clonePlayers.splice(objIndex, 1);
@@ -20,7 +19,6 @@ const counterReducer = (state, action) => {
             players: clonePlayers
           }
         }
-
         //check if player hit bounderies and add animation
         player.collision ? clonePlayers[objIndex].shake = true : clonePlayers[objIndex].shake = false
 
@@ -73,7 +71,7 @@ const counterReducer = (state, action) => {
 };
 
 export const useWebSocket = (url, bounderies) => {
-  const [messages, dispatch] = useReducer(counterReducer, initialState);
+  const [messages, dispatch] = useReducer(gameReducer, initialState);
   const webSocket = useRef(null);
 
   useEffect(() => {
@@ -93,7 +91,7 @@ export const useWebSocket = (url, bounderies) => {
     }
     return () => {
       webSocket.current.onclose = (e) => {
-        console.log("socket close connection", e)
+        alert("socket close connection", e)
       }
     };
   }, [bounderies]);

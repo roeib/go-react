@@ -1,5 +1,5 @@
- const STEP = 10;
- const NOSTEP = 0
+const STEP = 10;
+const NOSTEP = 0
 export const ws = 'ws://localhost:8080/ws'
 export const playerMoves = {
   "ArrowRight": { y: `${NOSTEP}`, x: `${STEP}` },

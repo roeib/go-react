@@ -6,15 +6,10 @@ import { useBodyBounderies } from './hooks/useBodyBounderies'
 import { ws, playerMoves } from './Utils.js/Utils'
 import { useEventListener } from './hooks/useEventListener'
 import Monkeys from './components/Monkeys'
-import ex1 from './assets/ex1.png'
-import ex2 from './assets/ex2.png'
-import ex3 from './assets/ex3.png'
+import Score from './components/score/Score'
+import Dialog from './components/dialog/Dialog'
+import Exceptions from './components/exceptions/Exceptions'
 
-const exceptionsImg = {
-  DivideByZeroException: ex1,
-  IOException: ex2,
-  NullPointerException: ex3,
-}
 function App() {
   const bodyBounderies = useBodyBounderies()
   const [playState, sendMSG] = useWebSocket(ws, bodyBounderies)
@@ -25,21 +20,16 @@ function App() {
   useEventListener('keydown', showKeyCode);
   return (
     <>
-      <div>
-        <h2>Score</h2>
-        {playState.players.map(player => <div key={player.id}>{player.active ? "You" : player.exceptionType} - {player.score}</div>)}
-      </div>
       {
-        playState.exceptions.map(exception => {
-          return (
-            <div key={Math.random()} style={{ position: 'absolute', bottom: exception.y + 'px', left: exception.x + 'px' }}>
-              <img src={exceptionsImg[exception.exceptionType]} alt=""/>
-            </div>
-          )
-        })
+        playState.players.length === 1 ?
+        <Dialog msg={'Waiting for other players to play'} />
+        :
+        <>
+          <Score players={playState.players} />
+          <Exceptions exceptions={playState.exceptions} />
+          <Monkeys players={playState.players} />
+        </>
       }
-
-      <Monkeys players={playState.players} />
     </>
   );
 }
