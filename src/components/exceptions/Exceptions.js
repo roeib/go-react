@@ -14,11 +14,10 @@ const Exceptions = ({ exceptions }) => {
             return (
               <div key={Math.random()} style={{ position: 'absolute', bottom: exception.y + 'px', left: exception.x + 'px' }}>
                 <img src={exceptionsImg[exception.exceptionType]} alt="" />
-                <span>{exception.exceptionType}</span>
               </div>
             )
           })
         )
 
 }
-export default Exceptions
+export default React.memo(Exceptions)
