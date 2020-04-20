@@ -102,15 +102,20 @@ func RemoveRand() (Exception, bool) {
 	return Exception{},false
 }
 
+func doOverlap(playerX int64, playerY int64, exX int64, exY int64) bool{
+	if playerX > (exX+150) || exX > (playerX+100){ return false }
+	if (playerY+129) < exY || (exY +200) < playerY {return false }
+	return true
+}
+
 func HandleExceptionCollision(newX int64, newY int64 ,player Player ) (Exception, bool) {
 	exceptionsMap.Lock()
 	defer exceptionsMap.Unlock()
 	for i := 0; i < len(exceptionsMap.items); i++ {
-		value:=exceptionsMap.items[i]
-		if value.Show && (newX == value.X || newX+50 >= value.X || newX-50 <= value.X) && (newY == value.Y || newY+50 >= value.Y || newY-50 <= value.Y) {
-			if value.ExceptionType == player.ExceptionType {
-				exceptionsMap.items[i].Show=false
-			}
+		ex:=exceptionsMap.items[i]
+		if ex.Show && doOverlap(newX, newY, ex.X, ex.Y) &&
+			ex.ExceptionType == player.ExceptionType {
+			exceptionsMap.items[i].Show=false
 			return exceptionsMap.items[i], true
 		}
 	}
@@ -159,13 +164,10 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 	} else {
 		value, ok:= HandleExceptionCollision(x,y,player)
 		if ok {
-			if value.ExceptionType == player.ExceptionType{
-				broadcastMsg <- ElementsMsg{Excption: &value}
-				player.Score = player.Score + 1
-				clients[ws].Score = player.Score
-			}else{
-				player.Collision = true
-			}
+			broadcastMsg <- ElementsMsg{Excption: &value}
+			player.Score = player.Score + 1
+			clients[ws].Score = player.Score
+			player.Collision = false
 		}
 		player.X , player.Y = x, y
 		clients[ws].X, clients[ws].Y = x,y

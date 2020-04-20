@@ -4,8 +4,8 @@ import ex2 from '../../assets/ex2.png'
 import ex3 from '../../assets/ex3.png'
 
 const exceptionsImg = {
-  DivideByZeroException: ex1,
-  IOException: ex2,
+  DivideByZeroException: ex2,
+  IOException: ex1,
   NullPointerException: ex3,
 }
 const Exceptions = ({ exceptions }) => {
