@@ -40,7 +40,8 @@ const gameReducer = (state, action) => {
       };
     case "exception":
       const { exception } = action.by
-      const exceptionIndex = state.exceptions.findIndex(obj => obj.id === exception.id);
+      const exceptionIndex = state.exceptions.findIndex(obj => obj.exceptionType === exception.exceptionType);
+     
       if (exceptionIndex !== -1) {
         const cloneExceptions = JSON.parse(JSON.stringify(state.exceptions));
         if (!exception.show) {
@@ -51,6 +52,7 @@ const gameReducer = (state, action) => {
           }
         }
       }
+      if(!exception.show) return {...state}
       return {
         ...state,
         exceptions: [...state.exceptions, exception]
