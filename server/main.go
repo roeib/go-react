@@ -51,13 +51,14 @@ type ElementsMsg struct {
 	Excption *Exception `json:"exception,omitempty"`
 }
 
-var exceptionsTypes = [3]string{"NullPointerException", "DivideByZeroException", "IOException"}
+var exceptionsTypes = [11]string{"IOException", "DivideByZeroException", "NullPointerException", "ArithmeticException", "FileNotFoundException", "IndexOutOfBoundsException",
+	"InterruptedException", "ClassNotFoundException", "NoSuchFieldException", "NoSuchMethodException", "RuntimeException"}
 var clients = make(map[*websocket.Conn]*Player) // connected clients
 var broadcastMsg = make(chan ElementsMsg)
 var upgrader = websocket.Upgrader{}
 var exceptionsMap = struct {
 	sync.RWMutex
-	items [3]Exception
+	items [11]Exception
 }{}
 
 func initExceptionsList(){
@@ -74,11 +75,11 @@ func initExceptionsList(){
 
 func Set()(Exception, bool) {
 	rand.Seed(time.Now().UnixNano())
-	var min, max int = 50, 300
+	var min, max int = 50, 500
 	exceptionsMap.Lock()
 	defer exceptionsMap.Unlock()
 
-	var i = rand.Intn(3)
+	var i = rand.Intn(len(exceptionsTypes))
 	if !(exceptionsMap.items[i].Show){
 		exceptionsMap.items[i].Show = true
 		exceptionsMap.items[i].X= int64(rand.Intn(max - min + 1) + min)
@@ -93,7 +94,7 @@ func RemoveRand() (Exception, bool) {
 	exceptionsMap.Lock()
 	defer exceptionsMap.Unlock()
 	rand.Seed(time.Now().UnixNano())
-	var i = rand.Intn(3)
+	var i = rand.Intn(len(exceptionsTypes))
 	if exceptionsMap.items[i].Show{
 		exceptionsMap.items[i].Show = false
 		fmt.Println("removed rand Exception: ", exceptionsMap.items[i] )
@@ -103,7 +104,7 @@ func RemoveRand() (Exception, bool) {
 }
 
 func doOverlap(playerX int64, playerY int64, exX int64, exY int64) bool{
-	if playerX > (exX+150) || exX > (playerX+100){ return false }
+	if playerX > (exX+130) || exX > (playerX+100){ return false }
 	if (playerY+129) < exY || (exY +200) < playerY {return false }
 	return true
 }
@@ -176,8 +177,7 @@ func handlePlayerMovement(ws *websocket.Conn, newX int64, newY int64) {
 }
 
 func exceptionsMapHandler() {
-	time.Sleep(30 *time.Second)
-	addExTicker := time.NewTicker(40 * time.Second)
+	addExTicker := time.NewTicker(2 * time.Second)
 	go func() {
 		for t := range addExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
@@ -186,7 +186,7 @@ func exceptionsMapHandler() {
 		}
 	}()
 
-	removeExTicker := time.NewTicker(50 * time.Second)
+	removeExTicker := time.NewTicker(3 * time.Second)
 	go func() {
 		for t := range removeExTicker.C {
 			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
@@ -208,7 +208,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		var msg actionMessage
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("207 error: %v", err)
+			log.Printf("212 error: %v", err)
 			plyrMsg := clients[ws]
 			plyrMsg.Show = false
 			broadcastMsg <- ElementsMsg{Plyer: plyrMsg}
