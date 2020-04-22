@@ -74,11 +74,9 @@ func initExceptionsList(){
 }
 
 func Set()(Exception, bool) {
-	rand.Seed(time.Now().UnixNano())
-	var min, max int = 50, 500
+	var min, max int = 50, 600
 	exceptionsMap.Lock()
 	defer exceptionsMap.Unlock()
-
 	var i = rand.Intn(len(exceptionsTypes))
 	if !(exceptionsMap.items[i].Show){
 		exceptionsMap.items[i].Show = true
@@ -93,7 +91,6 @@ func Set()(Exception, bool) {
 func RemoveRand() (Exception, bool) {
 	exceptionsMap.Lock()
 	defer exceptionsMap.Unlock()
-	rand.Seed(time.Now().UnixNano())
 	var i = rand.Intn(len(exceptionsTypes))
 	if exceptionsMap.items[i].Show{
 		exceptionsMap.items[i].Show = false
@@ -237,6 +234,7 @@ func broadcastMessages() {
 
 func main() {
 	fmt.Println("ExceptionalMonkeys ... ")
+	rand.Seed(time.Now().UnixNano())
 	http.HandleFunc("/ws", handleConnections)
 	initExceptionsList()
 	go broadcastMessages()
